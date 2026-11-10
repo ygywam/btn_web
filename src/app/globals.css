@@ -1,0 +1,54 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #FAF8F0;
+  --foreground: #1E232A;
+  --paper-card: #FFFFFF;
+  --paper-border: #E8E3D5;
+  --accent-gold: #D97706;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* 모바일 입력창 줌인 방지 및 오버플로우 차단 */
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
+  font-size: 100%;
+}
+
+/* 터치 타깃 최소 크기 권장 보조 클래스 */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 포스트잇 스타일 */
+.postit-card {
+  background: #FFF9DB;
+  border-left: 4px solid #F59E0B;
+  box-shadow: 2px 4px 15px rgba(0, 0, 0, 0.08);
+}

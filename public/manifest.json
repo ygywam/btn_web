@@ -1,0 +1,27 @@
+{
+  "name": "북튜닝 (Book Tuning)",
+  "short_name": "북튜닝",
+  "description": "의미 있는 독서로 삶을 튜닝하자",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF8F0",
+  "theme_color": "#FAF8F0",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
