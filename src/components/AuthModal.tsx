@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Mail, Lock, User, Loader2, Sparkles } from 'lucide-react';
+import { X, Mail, Lock, User, Loader2, Sparkles, Lightbulb } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { Profile } from '@/types/database';
 
@@ -157,7 +157,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
       <div className="relative w-full max-w-sm bg-white border border-[#E8E3D5] rounded-3xl shadow-2xl p-6 overflow-hidden">
         
         {/* 상단 닫기 */}
-        <div className="flex items-center justify-between pb-3 border-b border-neutral-100 mb-4">
+        <div className="flex items-center justify-between pb-3 border-b border-neutral-100 mb-3">
           <h3 className="font-bold text-base sm:text-lg text-neutral-900">
             {mode === 'NICKNAME'
               ? '닉네임 설정'
@@ -171,6 +171,17 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
           >
             <X className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* 모달 사용 팁 가이드 배너 */}
+        <div className="p-3 bg-amber-50/80 border border-amber-200/70 rounded-2xl text-[11px] text-amber-950 flex items-start gap-2 mb-4">
+          <Lightbulb className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="space-y-0.5 leading-relaxed">
+            <span className="font-bold text-amber-900 block">💡 계정 동기화 안내</span>
+            <p className="text-amber-800">
+              동일한 Supabase 계정(이메일)으로 로그인하면 모바일과 PC 어디서나 내 서재와 독서 기록이 실시간으로 안전하게 동기화됩니다.
+            </p>
+          </div>
         </div>
 
         {errorMessage && (

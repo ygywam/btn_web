@@ -9,11 +9,12 @@ import AddPostModal from '@/components/AddPostModal';
 import AuthModal from '@/components/AuthModal';
 import BookCard from '@/components/BookCard';
 import FeedCard from '@/components/FeedCard';
-import { BookOpen, Sparkles, Plus, Compass, Bookmark, TrendingUp } from 'lucide-react';
+import AnalyticsTab from '@/components/AnalyticsTab';
+import { BookOpen, Sparkles, Plus, Compass, Bookmark, TrendingUp, MessageSquare, BarChart2 } from 'lucide-react';
 import type { Book, Post, Profile, BookStatus } from '@/types/database';
 
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<'library' | 'feed'>('library');
+  const [activeTab, setActiveTab] = useState<'library' | 'feed' | 'analytics'>('library');
   const [libraryFilter, setLibraryFilter] = useState<BookStatus | 'ALL'>('ALL');
 
   // 모달 제어 상태
@@ -27,114 +28,55 @@ export default function HomePage() {
   // 사용자 프로필 및 세션 유지
   const [profile, setProfile] = useState<Profile | null>(null);
 
-  // 로컬 목업/실데이터 상태 (서재 & 피드)
-  const [books, setBooks] = useState<Book[]>([
-    {
-      id: 'book-1',
-      user_id: 'default-user',
-      title: '데미안',
-      authors: '헤르만 헤세',
-      publisher: '민음사',
-      thumbnail_url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&q=80',
-      total_pages: 248,
-      current_page: 135,
-      status: 'READING',
-      is_public: false,
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: 'book-2',
-      user_id: 'default-user',
-      title: '도둑맞은 집중력',
-      authors: '요한 하리',
-      publisher: '어크로스',
-      thumbnail_url: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=300&q=80',
-      total_pages: 450,
-      current_page: 450,
-      status: 'COMPLETED',
-      is_public: false,
-      created_at: new Date().toISOString(),
-    },
-  ]);
+  // 실데이터 상태 (더미데이터 없이 로컬 스토리지 및 실제 데이터로 관리)
+  const [books, setBooks] = useState<Book[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  const [posts, setPosts] = useState<Post[]>([
-    {
-      id: 'post-1',
-      user_id: 'user-02',
-      book_id: 'book-1',
-      post_type: 'QUOTE',
-      quote: '새는 알을 깨고 나오려 힘겹게 싸운다. 알은 세계다. 태어나려는 자는 한 세계를 파괴해야만 한다.',
-      content: '늘 머뭇거리며 안전한 틀 안에 갇혀있던 나에게 강렬한 용기를 건네준 문장. 책을 읽는다는 건 나만의 알을 깨는 과정인 것 같다.',
-      page_number: 122,
-      is_public: true,
-      created_at: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-      profiles: {
-        id: 'user-02',
-        nickname: '새벽서재',
-        avatar_url: null,
-        created_at: '',
-      },
-      books: {
-        id: 'book-1',
-        user_id: 'user-02',
-        title: '데미안',
-        authors: '헤르만 헤세',
-        publisher: '민음사',
-        thumbnail_url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&q=80',
-        total_pages: 248,
-        current_page: 248,
-        status: 'COMPLETED',
-        is_public: true,
-        created_at: '',
-      },
-      likes_count: 5,
-      comments_count: 2,
-      user_has_liked: false,
-    },
-    {
-      id: 'post-2',
-      user_id: 'user-03',
-      book_id: 'book-2',
-      post_type: 'NOTE',
-      content: '스마트폰 알림을 끄고 오직 활자에만 몰입한 1시간. 흩어졌던 생각의 주파수가 다시 또렷하게 맞춰지는 기분이다.',
-      is_public: true,
-      created_at: new Date(Date.now() - 1000 * 60 * 360).toISOString(),
-      profiles: {
-        id: 'user-03',
-        nickname: '마인드튜너',
-        avatar_url: null,
-        created_at: '',
-      },
-      books: {
-        id: 'book-2',
-        user_id: 'user-03',
-        title: '도둑맞은 집중력',
-        authors: '요한 하리',
-        publisher: '어크로스',
-        thumbnail_url: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=300&q=80',
-        total_pages: 450,
-        current_page: 210,
-        status: 'READING',
-        is_public: true,
-        created_at: '',
-      },
-      likes_count: 8,
-      comments_count: 4,
-      user_has_liked: true,
-    },
-  ]);
-
-  // 로컬 세션 프로필 복원 (자동 로그인 유지)
+  // 로컬 세션 프로필 및 저장된 데이터 복원
   useEffect(() => {
-    const saved = localStorage.getItem('booktuning_user_profile');
-    if (saved) {
+    const savedProfile = localStorage.getItem('booktuning_user_profile');
+    if (savedProfile) {
       try {
-        setProfile(JSON.parse(saved));
+        setProfile(JSON.parse(savedProfile));
       } catch (e) {
-        console.error(e);
+        console.error('프로필 복원 실패:', e);
       }
     }
+
+    const savedBooks = localStorage.getItem('booktuning_books_data');
+    if (savedBooks) {
+      try {
+        setBooks(JSON.parse(savedBooks));
+      } catch (e) {
+        console.error('도서 목록 복원 실패:', e);
+      }
+    }
+
+    const savedPosts = localStorage.getItem('booktuning_posts_data');
+    if (savedPosts) {
+      try {
+        setPosts(JSON.parse(savedPosts));
+      } catch (e) {
+        console.error('피드 복원 실패:', e);
+      }
+    }
+
+    setIsLoaded(true);
   }, []);
+
+  // 데이터 변경 시 로컬 스토리지에 동기화
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem('booktuning_books_data', JSON.stringify(books));
+    }
+  }, [books, isLoaded]);
+
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem('booktuning_posts_data', JSON.stringify(posts));
+    }
+  }, [posts, isLoaded]);
 
   const handleSignOut = () => {
     localStorage.removeItem('booktuning_user_profile');
@@ -166,14 +108,51 @@ export default function HomePage() {
     setBooks((prev) => [newBook, ...prev]);
   };
 
-  // 진도율 쪽수 변경
+  // 진도율 쪽수 변경 및 100% 도달 시 '자동 완독' 전환 로직
   const handleUpdateProgress = (bookId: string, newPage: number) => {
     setBooks((prev) =>
-      prev.map((b) => (b.id === bookId ? { ...b, current_page: newPage } : b))
+      prev.map((b) => {
+        if (b.id !== bookId) return b;
+
+        const isCompletedNow = b.total_pages > 0 && newPage >= b.total_pages;
+        let nextStatus: BookStatus = b.status;
+
+        if (isCompletedNow && b.status !== 'COMPLETED') {
+          nextStatus = 'COMPLETED';
+          // 완독 축하 알림
+          setTimeout(() => {
+            alert(`🎉 축하합니다! 「${b.title}」을(를) 완독하셨습니다.\n완독 컬렉션 및 독서 통계 탭에 기록되었습니다.`);
+          }, 100);
+        } else if (!isCompletedNow && b.status === 'COMPLETED') {
+          // 완독 상태에서 쪽수를 낮춘 경우 다시 읽는 중으로 복원
+          nextStatus = 'READING';
+        }
+
+        return {
+          ...b,
+          current_page: newPage,
+          status: nextStatus,
+        };
+      })
     );
   };
 
-  // 상태 변경
+  // 전체 쪽수 수정
+  const handleUpdateTotalPages = (bookId: string, newTotal: number) => {
+    setBooks((prev) =>
+      prev.map((b) => {
+        if (b.id !== bookId) return b;
+        const isCompletedNow = newTotal > 0 && b.current_page >= newTotal;
+        return {
+          ...b,
+          total_pages: newTotal,
+          status: isCompletedNow ? 'COMPLETED' : b.status,
+        };
+      })
+    );
+  };
+
+  // 상태 직접 변경
   const handleUpdateStatus = (bookId: string, newStatus: BookStatus) => {
     setBooks((prev) =>
       prev.map((b) => (b.id === bookId ? { ...b, status: newStatus } : b))
@@ -215,7 +194,7 @@ export default function HomePage() {
     setPosts((prev) => [newPost, ...prev]);
   };
 
-  // 좋아요(하트) 토글
+  // 좋아요 토글
   const handleToggleLike = (postId: string) => {
     setPosts((prev) =>
       prev.map((p) => {
@@ -240,6 +219,11 @@ export default function HomePage() {
       })
     );
     alert('댓글이 등록되었습니다!');
+  };
+
+  // AI 추천 도서 원클릭 검색 연동
+  const handleSearchRecommendedBook = (bookTitle: string) => {
+    setIsSearchOpen(true);
   };
 
   // 필터링된 책 목록
@@ -270,11 +254,11 @@ export default function HomePage() {
         onSignOut={handleSignOut}
       />
 
-      {/* 2. 메인 컨텐츠 영역 (모바일 여백 최적화) */}
+      {/* 2. 메인 컨텐츠 영역 */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
         
         {/* 탭 1: 내 서재 (My Library) */}
-        {activeTab === 'library' ? (
+        {activeTab === 'library' && (
           <div className="space-y-6 sm:space-y-8">
             
             {/* 독서 통계 요약 카드 */}
@@ -333,7 +317,7 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* 책 카드 그리드 (모바일 1열, 태블릿 2열, 데스크탑 3열) */}
+            {/* 책 카드 그리드 */}
             {filteredBooks.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {filteredBooks.map((book) => (
@@ -341,6 +325,7 @@ export default function HomePage() {
                     key={book.id}
                     book={book}
                     onUpdateProgress={handleUpdateProgress}
+                    onUpdateTotalPages={handleUpdateTotalPages}
                     onUpdateStatus={handleUpdateStatus}
                     onSelectForPost={(selected) => {
                       setSelectedBookForPost(selected.id);
@@ -360,16 +345,19 @@ export default function HomePage() {
                 </p>
                 <button
                   onClick={() => setIsSearchOpen(true)}
-                  className="touch-target px-4 py-2 text-xs font-bold text-slate-950 bg-amber-500 hover:bg-amber-400 rounded-xl shadow-sm transition-all"
+                  className="touch-target px-4 py-2.5 text-xs font-bold text-slate-950 bg-amber-500 hover:bg-amber-400 active:scale-95 rounded-xl shadow-sm transition-all inline-flex items-center gap-1.5"
                 >
+                  <Plus className="w-4 h-4" />
                   도서 검색하여 첫 책 등록하기
                 </button>
               </div>
             )}
 
           </div>
-        ) : (
-          /* 탭 2: 공개 피드 (Explore Timeline) */
+        )}
+
+        {/* 탭 2: 공개 피드 (Explore Timeline) */}
+        {activeTab === 'feed' && (
           <div className="max-w-2xl mx-auto space-y-6">
             <div className="flex items-center justify-between pb-2 border-b border-neutral-200">
               <div className="flex items-center gap-2">
@@ -384,18 +372,51 @@ export default function HomePage() {
             </div>
 
             {/* 피드 게시물 목록 */}
-            <div className="space-y-4">
-              {posts.map((post) => (
-                <FeedCard
-                  key={post.id}
-                  post={post}
-                  currentUserId={profile?.id}
-                  onToggleLike={handleToggleLike}
-                  onAddComment={handleAddComment}
-                />
-              ))}
-            </div>
+            {posts.filter((p) => p.is_public).length > 0 ? (
+              <div className="space-y-4">
+                {posts
+                  .filter((p) => p.is_public)
+                  .map((post) => (
+                    <FeedCard
+                      key={post.id}
+                      post={post}
+                      currentUserId={profile?.id}
+                      onToggleLike={handleToggleLike}
+                      onAddComment={handleAddComment}
+                    />
+                  ))}
+              </div>
+            ) : (
+              <div className="py-16 text-center bg-white border border-[#E8E3D5] rounded-3xl p-6">
+                <MessageSquare className="w-12 h-12 text-neutral-300 mx-auto mb-3" />
+                <h3 className="font-bold text-base text-neutral-800 mb-1">
+                  아직 공개된 피드가 없습니다.
+                </h3>
+                <p className="text-xs text-neutral-500 max-w-sm mx-auto mb-4">
+                  책을 읽고 감명 깊었던 문장이나 단상을 전체 공개로 남겨보세요.
+                </p>
+                <button
+                  onClick={() => {
+                    setSelectedBookForPost(undefined);
+                    setIsAddPostOpen(true);
+                  }}
+                  className="touch-target px-4 py-2.5 text-xs font-bold text-slate-950 bg-amber-500 hover:bg-amber-400 active:scale-95 rounded-xl shadow-sm transition-all inline-flex items-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  첫 기록 남기기
+                </button>
+              </div>
+            )}
           </div>
+        )}
+
+        {/* 탭 3: 독서 통계 및 AI 분석/추천 리포트 (Analytics) */}
+        {activeTab === 'analytics' && (
+          <AnalyticsTab
+            books={books}
+            posts={posts}
+            onSearchBook={handleSearchRecommendedBook}
+          />
         )}
 
       </main>
@@ -420,7 +441,7 @@ export default function HomePage() {
         onAddBook={handleAddBook}
       />
 
-      {/* (4) 독서 기록 / 문장 수집 모달 (엑사원 AI 탑재) */}
+      {/* (4) 독서 기록 / 문장 수집 모달 (AI 감상 도우미 탑재) */}
       <AddPostModal
         isOpen={isAddPostOpen}
         onClose={() => setIsAddPostOpen(false)}

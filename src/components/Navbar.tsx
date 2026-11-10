@@ -2,12 +2,12 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { BookMarked, Compass, Plus, Film, HelpCircle, LogIn, LogOut, User } from 'lucide-react';
+import { BookMarked, Compass, Plus, Film, HelpCircle, LogIn, LogOut, User, BarChart2 } from 'lucide-react';
 import type { Profile } from '@/types/database';
 
 interface NavbarProps {
-  activeTab: 'library' | 'feed';
-  onTabChange: (tab: 'library' | 'feed') => void;
+  activeTab: 'library' | 'feed' | 'analytics';
+  onTabChange: (tab: 'library' | 'feed' | 'analytics') => void;
   onOpenSearch: () => void;
   onOpenNewPost: () => void;
   onOpenPromo: () => void;
@@ -33,12 +33,12 @@ export default function Navbar({
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2 sm:gap-4">
         
         {/* 좌측: 로고 및 서비스 명 */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <div 
             onClick={() => onTabChange('library')}
-            className="flex items-center gap-2.5 cursor-pointer group select-none"
+            className="flex items-center gap-2 sm:gap-2.5 cursor-pointer group select-none"
           >
-            <div className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden shadow-sm group-hover:scale-105 transition-transform">
+            <div className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden shadow-sm group-hover:scale-105 transition-transform flex-shrink-0">
               <Image 
                 src="/icon.svg" 
                 alt="북튜닝 로고" 
@@ -57,31 +57,42 @@ export default function Navbar({
             </div>
           </div>
 
-          {/* 중앙 메인 탭 (내 서재 vs 공개 피드) */}
-          <nav className="flex items-center gap-1 ml-2 sm:ml-6 bg-[#EFE9D9]/80 p-1 rounded-xl">
+          {/* 중앙 메인 탭 (내 서재 vs 공개 피드 vs 독서 통계) */}
+          <nav className="flex items-center gap-1 ml-1 sm:ml-4 bg-[#EFE9D9]/80 p-1 rounded-xl">
             <button
               data-tour="reading-status"
               onClick={() => onTabChange('library')}
-              className={`touch-target px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
+              className={`touch-target px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
                 activeTab === 'library'
                   ? 'bg-white text-neutral-900 shadow-sm'
                   : 'text-neutral-600 hover:text-neutral-900'
               }`}
             >
-              <BookMarked className="w-4 h-4 mr-1 sm:mr-1.5 inline-block" />
-              내 서재
+              <BookMarked className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 inline-block" />
+              <span>내 서재</span>
             </button>
             <button
               data-tour="explore-feed"
               onClick={() => onTabChange('feed')}
-              className={`touch-target px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
+              className={`touch-target px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
                 activeTab === 'feed'
                   ? 'bg-white text-neutral-900 shadow-sm'
                   : 'text-neutral-600 hover:text-neutral-900'
               }`}
             >
-              <Compass className="w-4 h-4 mr-1 sm:mr-1.5 inline-block" />
-              공개 피드
+              <Compass className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 inline-block" />
+              <span>피드</span>
+            </button>
+            <button
+              onClick={() => onTabChange('analytics')}
+              className={`touch-target px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
+                activeTab === 'analytics'
+                  ? 'bg-white text-neutral-900 shadow-sm'
+                  : 'text-neutral-600 hover:text-neutral-900'
+              }`}
+            >
+              <BarChart2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 inline-block" />
+              <span>독서 통계</span>
             </button>
           </nav>
         </div>

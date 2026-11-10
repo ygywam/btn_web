@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, Sparkles, Globe, Lock, Loader2, Quote, BookOpen, Send } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Sparkles, Globe, Lock, Loader2, Quote, BookOpen, Send, Lightbulb } from 'lucide-react';
 import type { Book, PostType } from '@/types/database';
 
 interface AddPostModalProps {
@@ -26,7 +26,8 @@ export default function AddPostModal({
   selectedBookId,
   onSubmit,
 }: AddPostModalProps) {
-  const [bookId, setBookId] = useState(selectedBookId || (books[0]?.id ?? ''));
+  const [bookId, setBookId] = useState(selectedBookId || '');
+  const [isLockedBook, setIsLockedBook] = useState(Boolean(selectedBookId));
   const [postType, setPostType] = useState<PostType>('QUOTE');
   const [quote, setQuote] = useState('');
   const [pageNumber, setPageNumber] = useState('');
@@ -34,11 +35,27 @@ export default function AddPostModal({
   const [isPublic, setIsPublic] = useState(false); // 기본 비공개 원칙
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
 
+  // 모달이 열리거나 선택된 책이 바뀔 때 동기화
+  useEffect(() => {
+    if (isOpen) {
+      if (selectedBookId) {
+        setBookId(selectedBookId);
+        setIsLockedBook(true);
+      } else {
+        setIsLockedBook(false);
+        if (!bookId && books.length > 0) {
+          setBookId(books[0].id);
+        }
+      }
+    }
+  }, [selectedBookId, isOpen, books]);
+
   if (!isOpen) return null;
 
+  const currentBook = books.find((b) => b.id === bookId);
+
   const handleAiGenerate = async () => {
-    const selectedBook = books.find((b) => b.id === bookId);
-    if (!selectedBook && !quote && !content) {
+    if (!currentBook && !quote && !content) {
       alert('책을 선택하거나 문장 또는 메모를 입력한 후 AI 감상문을 생성해 보세요.');
       return;
     }
@@ -49,14 +66,14 @@ export default function AddPostModal({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: selectedBook?.title,
+          title: currentBook?.title,
           quote: quote.trim(),
           userNotes: content.trim(),
         }),
       });
       const data = await res.json();
       if (data.content) {
-        setContent((prev) => (prev ? `${prev}\n\n[엑사원 AI 감상문]\n${data.content}` : data.content));
+        setContent((prev) => (prev ? `${prev}\n\n[AI 감상 노트]\n${data.content}` : data.content));
       }
     } catch (err) {
       console.error('AI 감상문 생성 오류:', err);
@@ -81,6 +98,10 @@ export default function AddPostModal({
       is_public: isPublic,
     });
 
+    // 폼 초기화 후 닫기
+    setQuote('');
+    setContent('');
+    setPageNumber('');
     onClose();
   };
 
@@ -110,23 +131,70 @@ export default function AddPostModal({
         {/* 메인 폼 본문 (스크롤 지원, 모바일 인풋 잘림 방지) */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-5 flex flex-col gap-4">
           
-          {/* 1. 도서 선택 */}
+          {/* 모달 사용 팁 가이드 배너 */}
+          <div className="p-3 bg-amber-50/80 border border-amber-200/70 rounded-2xl text-[11px] sm:text-xs text-amber-950 flex items-start gap-2.5">
+            <Lightbulb className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="space-y-0.5 leading-relaxed">
+              <span className="font-bold text-amber-900 block">💡 기록 작성 가이드</span>
+              <p className="text-amber-800">
+                인상 깊은 문장이나 생각을 입력한 뒤 <strong>[AI 독서노트 작성]</strong>을 누르면 문맥에 맞는 감상평을 작성해 줍니다. <strong>'기본 비공개'</strong>는 나만의 비밀 서재에 보관되며, <strong>'전체 공개'</strong>로 바꾸면 피드에 공유됩니다.
+              </p>
+            </div>
+          </div>
+
+          {/* 1. 도서 선택 (특정 책 카드에서 들어왔을 때 고정 표시) */}
           <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1">
-              어떤 책의 기록인가요?
+            <label className="block text-xs font-bold text-neutral-700 mb-1.5">
+              기록할 도서
             </label>
-            <select
-              value={bookId}
-              onChange={(e) => setBookId(e.target.value)}
-              className="w-full text-xs sm:text-sm py-2 px-3 rounded-xl bg-neutral-50 border border-neutral-200 text-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
-            >
-              <option value="">책 선택 안 함 (자유 기록)</option>
-              {books.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.title} ({b.authors})
-                </option>
-              ))}
-            </select>
+            {isLockedBook && currentBook ? (
+              <div className="p-3 rounded-2xl bg-amber-50/70 border border-amber-200 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  {currentBook.thumbnail_url ? (
+                    <img
+                      src={currentBook.thumbnail_url}
+                      alt={currentBook.title}
+                      className="w-10 h-14 object-cover rounded-lg shadow-xs flex-shrink-0 border border-black/5"
+                    />
+                  ) : (
+                    <div className="w-10 h-14 bg-amber-100 rounded-lg flex items-center justify-center text-amber-800 flex-shrink-0">
+                      <BookOpen className="w-5 h-5" />
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <span className="inline-block text-[10px] font-bold text-amber-800 bg-amber-200/70 px-2 py-0.5 rounded-full mb-1">
+                      📌 이 책에 기록 고정됨
+                    </span>
+                    <h4 className="font-bold text-xs sm:text-sm text-neutral-900 truncate">
+                      {currentBook.title}
+                    </h4>
+                    <p className="text-[11px] text-neutral-500 truncate">
+                      {currentBook.authors} · {currentBook.publisher}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsLockedBook(false)}
+                  className="touch-target text-[11px] font-semibold text-neutral-500 hover:text-neutral-800 underline flex-shrink-0 px-2 py-1"
+                >
+                  다른 책 선택
+                </button>
+              </div>
+            ) : (
+              <select
+                value={bookId}
+                onChange={(e) => setBookId(e.target.value)}
+                className="w-full text-xs sm:text-sm py-2.5 px-3 rounded-xl bg-neutral-50 border border-neutral-200 text-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              >
+                <option value="">책 선택 안 함 (자유 기록)</option>
+                {books.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.title} ({b.authors})
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* 2. 기록 유형 탭 */}
@@ -190,24 +258,24 @@ export default function AddPostModal({
 
           {/* 4. 나의 생각 및 단상 */}
           <div>
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-bold text-neutral-700">
                 나의 생각 & 독서 단상
               </label>
-              {/* 엑사원 AI 감상문 버튼 */}
+              {/* 자연스러운 이름으로 변경된 AI 버튼 */}
               <button
                 type="button"
                 onClick={handleAiGenerate}
                 disabled={isGeneratingAi}
-                className="touch-target px-2 py-1 text-[11px] font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 rounded-lg flex items-center gap-1 transition-all"
-                title="엑사원 AI로 감상문 초안 자동 작성"
+                className="touch-target px-2.5 py-1 text-[11px] font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 active:scale-95 rounded-lg flex items-center gap-1 transition-all"
+                title="AI가 책 정보와 문장을 분석해 감상문 작성을 도와줍니다"
               >
                 {isGeneratingAi ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
                   <Sparkles className="w-3.5 h-3.5 text-amber-600" />
                 )}
-                <span>엑사원 AI 감상문 초안</span>
+                <span>✨ AI 독서노트 작성</span>
               </button>
             </div>
             <textarea

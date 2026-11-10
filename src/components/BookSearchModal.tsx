@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { Search, X, Loader2, BookPlus, BookOpen } from 'lucide-react';
+import { Search, X, Loader2, BookPlus, BookOpen, Lightbulb, Check } from 'lucide-react';
 import type { KakaoBookItem, BookStatus } from '@/types/database';
 
 interface BookSearchModalProps {
@@ -28,6 +28,10 @@ export default function BookSearchModal({
   const [results, setResults] = useState<KakaoBookItem[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<BookStatus>('READING');
+  
+  // 선택한 책의 쪽수 입력을 위한 상태
+  const [selectedItemForAdd, setSelectedItemForAdd] = useState<KakaoBookItem | null>(null);
+  const [inputTotalPages, setInputTotalPages] = useState('250');
 
   if (!isOpen) return null;
 
@@ -37,6 +41,7 @@ export default function BookSearchModal({
 
     setIsLoading(true);
     setHasSearched(true);
+    setSelectedItemForAdd(null);
 
     try {
       const res = await fetch(`/api/books/search?query=${encodeURIComponent(query.trim())}`);
@@ -54,15 +59,27 @@ export default function BookSearchModal({
     }
   };
 
-  const handleAdd = (item: KakaoBookItem) => {
+  const handleOpenAddConfirm = (item: KakaoBookItem) => {
+    setSelectedItemForAdd(item);
+    setInputTotalPages('250'); // 기본 추천 쪽수
+  };
+
+  const handleConfirmAdd = () => {
+    if (!selectedItemForAdd) return;
+
+    const parsedPages = parseInt(inputTotalPages, 10);
+    const pages = (!isNaN(parsedPages) && parsedPages > 0) ? parsedPages : 250;
+
     onAddBook({
-      title: item.title,
-      authors: item.authors?.join(', ') || '저자 미상',
-      publisher: item.publisher || '출판사 미상',
-      thumbnail_url: item.thumbnail || '',
-      total_pages: 300, // 기본 쪽수 (카카오 기본 정보에 쪽수가 없을 경우 300p 기본값)
+      title: selectedItemForAdd.title,
+      authors: selectedItemForAdd.authors?.join(', ') || '저자 미상',
+      publisher: selectedItemForAdd.publisher || '출판사 미상',
+      thumbnail_url: selectedItemForAdd.thumbnail || '',
+      total_pages: pages,
       status: selectedStatus,
     });
+
+    setSelectedItemForAdd(null);
     onClose();
   };
 
@@ -77,7 +94,7 @@ export default function BookSearchModal({
               도서 검색 및 서재 등록
             </h3>
             <p className="text-xs text-neutral-500">
-              카카오 도서 검색으로 읽고 있는 책을 서재에 추가하세요.
+              카카오 도서 검색으로 책을 찾고 내 서재에 추가하세요.
             </p>
           </div>
           <button
@@ -89,9 +106,21 @@ export default function BookSearchModal({
           </button>
         </div>
 
-        {/* 검색 폼 (모바일 오버플로우 방지) */}
-        <div className="p-4 sm:p-5 border-b border-neutral-100 bg-[#FAF8F0]/50">
-          <form onSubmit={handleSearch} className="flex gap-2 mb-3">
+        {/* 검색 폼 및 사용 팁 */}
+        <div className="p-4 sm:p-5 border-b border-neutral-100 bg-[#FAF8F0]/50 space-y-3">
+          
+          {/* 모달 사용 팁 가이드 배너 */}
+          <div className="p-3 bg-amber-50/80 border border-amber-200/70 rounded-2xl text-[11px] sm:text-xs text-amber-950 flex items-start gap-2.5">
+            <Lightbulb className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="space-y-0.5 leading-relaxed">
+              <span className="font-bold text-amber-900 block">💡 쪽수 및 완독 안내</span>
+              <p className="text-amber-800">
+                카카오 API는 책 제목/저자만 제공하므로, 책을 담을 때 <strong>전체 쪽수</strong>를 직접 확인해 입력하실 수 있습니다. 진도율이 100%가 되면 시스템이 <strong>자동으로 완독 처리</strong>합니다.
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSearch} className="flex gap-2">
             <div className="relative flex-1 min-w-0">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
               <input
@@ -106,33 +135,68 @@ export default function BookSearchModal({
             <button
               type="submit"
               disabled={isLoading || !query.trim()}
-              className="touch-target px-4 py-2 text-xs sm:text-sm font-bold rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 transition-all flex items-center gap-1.5 flex-shrink-0"
+              className="touch-target px-4 py-2 text-xs sm:text-sm font-bold rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 transition-all flex items-center gap-1.5 flex-shrink-0 shadow-xs"
             >
               {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : '검색'}
             </button>
           </form>
+        </div>
 
-          {/* 등록 시 기본 독서 상태 선택 */}
-          <div className="flex items-center gap-2 text-xs text-neutral-600">
-            <span>등록할 상태:</span>
-            <div className="flex items-center gap-1">
-              {(['READING', 'WISH', 'COMPLETED'] as BookStatus[]).map((st) => (
-                <button
-                  key={st}
-                  type="button"
-                  onClick={() => setSelectedStatus(st)}
-                  className={`touch-target px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all ${
-                    selectedStatus === st
-                      ? 'bg-amber-500 text-slate-950 shadow-xs'
-                      : 'bg-white border border-neutral-200 text-neutral-600'
-                  }`}
-                >
-                  {st === 'READING' ? '📖 읽는 중' : st === 'WISH' ? '⭐ 읽고 싶은' : '✅ 완독'}
-                </button>
-              ))}
+        {/* 선택한 책의 쪽수 확인 미니 팝업 / 바텀 시트 */}
+        {selectedItemForAdd && (
+          <div className="p-4 bg-amber-100/70 border-b border-amber-300 flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              {selectedItemForAdd.thumbnail ? (
+                <img
+                  src={selectedItemForAdd.thumbnail}
+                  alt={selectedItemForAdd.title}
+                  className="w-10 h-14 object-cover rounded shadow-xs border border-amber-300 flex-shrink-0"
+                />
+              ) : (
+                <div className="w-10 h-14 bg-amber-200 rounded flex items-center justify-center text-amber-800 flex-shrink-0">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-bold text-amber-900 bg-amber-200 px-2 py-0.5 rounded-full">
+                  서재에 담기 전 확인
+                </span>
+                <h4 className="font-bold text-xs sm:text-sm text-neutral-900 truncate">
+                  {selectedItemForAdd.title}
+                </h4>
+                <div className="flex items-center gap-2 mt-1">
+                  <label className="text-xs font-semibold text-neutral-700">전체 쪽수:</label>
+                  <input
+                    type="number"
+                    value={inputTotalPages}
+                    onChange={(e) => setInputTotalPages(e.target.value)}
+                    className="w-20 px-2 py-0.5 text-xs font-bold rounded bg-white border border-amber-400 text-neutral-900 text-center"
+                    placeholder="예: 250"
+                  />
+                  <span className="text-xs text-neutral-600">쪽</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <button
+                type="button"
+                onClick={() => setSelectedItemForAdd(null)}
+                className="touch-target px-3 py-1.5 text-xs text-neutral-600 hover:text-neutral-900 rounded-lg"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmAdd}
+                className="touch-target px-4 py-1.5 text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl shadow-xs flex items-center gap-1"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>서재에 담기 완료</span>
+              </button>
             </div>
           </div>
-        </div>
+        )}
 
         {/* 검색 결과 리스트 */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 divide-y divide-neutral-100">
@@ -145,7 +209,7 @@ export default function BookSearchModal({
             results.map((item, idx) => (
               <div key={idx} className="py-3 flex items-center justify-between gap-3 first:pt-0 last:pb-0">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="relative w-12 h-16 rounded overflow-hidden shadow-xs bg-neutral-100 flex-shrink-0">
+                  <div className="relative w-12 h-16 rounded-lg overflow-hidden shadow-xs bg-neutral-100 flex-shrink-0 border border-black/5">
                     {item.thumbnail ? (
                       <Image
                         src={item.thumbnail}
@@ -171,11 +235,11 @@ export default function BookSearchModal({
                 </div>
 
                 <button
-                  onClick={() => handleAdd(item)}
-                  className="touch-target px-3 py-1.5 text-xs font-semibold rounded-xl bg-amber-100 hover:bg-amber-500 text-amber-900 hover:text-slate-950 transition-all flex items-center gap-1 flex-shrink-0"
+                  onClick={() => handleOpenAddConfirm(item)}
+                  className="touch-target px-3 py-1.5 text-xs font-bold rounded-xl bg-amber-100 hover:bg-amber-500 text-amber-900 hover:text-slate-950 transition-all flex items-center gap-1 flex-shrink-0 shadow-xs"
                 >
                   <BookPlus className="w-3.5 h-3.5" />
-                  <span>담기</span>
+                  <span>내 책장에 담기</span>
                 </button>
               </div>
             ))

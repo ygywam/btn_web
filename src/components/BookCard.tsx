@@ -2,13 +2,14 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { BookOpen, CheckCircle, Clock, Bookmark, Lock, Globe, Plus, Minus } from 'lucide-react';
+import { BookOpen, CheckCircle, Clock, Bookmark, Lock, Globe, Plus, Minus, Edit3 } from 'lucide-react';
 import type { Book, BookStatus } from '@/types/database';
 
 interface BookCardProps {
   book: Book;
   onUpdateProgress: (bookId: string, newPage: number) => void;
   onUpdateStatus: (bookId: string, newStatus: BookStatus) => void;
+  onUpdateTotalPages?: (bookId: string, newTotal: number) => void;
   onSelectForPost?: (book: Book) => void;
 }
 
@@ -16,10 +17,13 @@ export default function BookCard({
   book,
   onUpdateProgress,
   onUpdateStatus,
+  onUpdateTotalPages,
   onSelectForPost,
 }: BookCardProps) {
   const [isEditingPage, setIsEditingPage] = useState(false);
+  const [isEditingTotal, setIsEditingTotal] = useState(false);
   const [pageInput, setPageInput] = useState(book.current_page.toString());
+  const [totalInput, setTotalInput] = useState(book.total_pages.toString());
 
   // 진도율 퍼센트 계산 (0 ~ 100%)
   const percentage = book.total_pages > 0
@@ -37,6 +41,15 @@ export default function BookCard({
     setIsEditingPage(false);
   };
 
+  const handleTotalSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsed = parseInt(totalInput, 10);
+    if (!isNaN(parsed) && parsed > 0 && onUpdateTotalPages) {
+      onUpdateTotalPages(book.id, parsed);
+    }
+    setIsEditingTotal(false);
+  };
+
   const handleQuickPageChange = (delta: number) => {
     const next = Math.max(0, book.current_page + delta);
     const clamped = book.total_pages > 0 ? Math.min(next, book.total_pages) : next;
@@ -47,13 +60,15 @@ export default function BookCard({
   // 상태 배지 매핑
   const statusConfig = {
     READING: { label: '읽는 중', color: 'bg-amber-100 text-amber-800 border-amber-300' },
-    COMPLETED: { label: '완독', color: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
+    COMPLETED: { label: '완독 🎉', color: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
     WISH: { label: '읽고 싶은 책', color: 'bg-blue-100 text-blue-800 border-blue-300' },
     HOLD: { label: '보류', color: 'bg-neutral-100 text-neutral-700 border-neutral-300' },
   }[book.status];
 
   return (
-    <div className="group relative bg-white border border-[#E8E3D5] rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+    <div className={`group relative bg-white border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between ${
+      book.status === 'COMPLETED' ? 'border-emerald-200 bg-emerald-50/20' : 'border-[#E8E3D5]'
+    }`}>
       
       {/* 상단: 상태 배지 및 공개여부 */}
       <div className="flex items-center justify-between gap-2 mb-3">
@@ -75,7 +90,7 @@ export default function BookCard({
 
       {/* 중간: 도서 표지 및 기본 메타 정보 */}
       <div className="flex gap-3.5 mb-4">
-        {/* 표지 이미지 (고해상도 or 플레이스홀더) */}
+        {/* 표지 이미지 */}
         <div className="relative w-20 h-28 sm:w-24 sm:h-32 flex-shrink-0 rounded-xl overflow-hidden shadow-md bg-neutral-100 border border-neutral-200">
           {book.thumbnail_url ? (
             <Image
@@ -127,32 +142,66 @@ export default function BookCard({
         <div className="flex items-center justify-between text-xs mb-1.5">
           <div className="flex items-center gap-1.5 font-semibold text-neutral-700">
             <span>진도율</span>
-            <span className="text-amber-700 font-bold">{percentage}%</span>
+            <span className={`font-bold ${percentage === 100 ? 'text-emerald-600' : 'text-amber-700'}`}>
+              {percentage}%
+            </span>
+            {percentage === 100 && (
+              <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded-full font-bold">
+                완독!
+              </span>
+            )}
           </div>
 
-          {/* 쪽수 입력/표시 토글 */}
-          {isEditingPage ? (
-            <form onSubmit={handlePageSubmit} className="flex items-center gap-1">
-              <input
-                type="number"
-                value={pageInput}
-                onChange={(e) => setPageInput(e.target.value)}
-                autoFocus
-                onBlur={handlePageSubmit}
-                aria-label="현재 읽은 페이지 입력"
-                className="w-14 text-center text-xs py-0.5 px-1 rounded border border-amber-500 focus:outline-none"
-              />
-              <span className="text-neutral-400">/ {book.total_pages || '?'}p</span>
-            </form>
-          ) : (
-            <button
-              onClick={() => setIsEditingPage(true)}
-              className="text-neutral-500 hover:text-amber-700 transition-colors underline decoration-dotted"
-              title="클릭하여 쪽수 직접 수정"
-            >
-              {book.current_page} / {book.total_pages > 0 ? `${book.total_pages}p` : '? p'}
-            </button>
-          )}
+          {/* 쪽수 입력 및 전체 쪽수 수정 */}
+          <div className="flex items-center gap-1 text-neutral-500">
+            {isEditingPage ? (
+              <form onSubmit={handlePageSubmit} className="inline-flex items-center">
+                <input
+                  type="number"
+                  value={pageInput}
+                  onChange={(e) => setPageInput(e.target.value)}
+                  autoFocus
+                  onBlur={handlePageSubmit}
+                  aria-label="현재 읽은 쪽수"
+                  className="w-12 text-center text-xs py-0.5 px-1 rounded border border-amber-500 focus:outline-none bg-amber-50"
+                />
+              </form>
+            ) : (
+              <button
+                onClick={() => setIsEditingPage(true)}
+                className="hover:text-amber-700 font-semibold transition-colors underline decoration-dotted"
+                title="클릭하여 현재 읽은 쪽수 직접 입력"
+              >
+                {book.current_page}
+              </button>
+            )}
+
+            <span>/</span>
+
+            {isEditingTotal ? (
+              <form onSubmit={handleTotalSubmit} className="inline-flex items-center">
+                <input
+                  type="number"
+                  value={totalInput}
+                  onChange={(e) => setTotalInput(e.target.value)}
+                  autoFocus
+                  onBlur={handleTotalSubmit}
+                  aria-label="전체 쪽수 수정"
+                  className="w-14 text-center text-xs py-0.5 px-1 rounded border border-neutral-400 focus:outline-none"
+                />
+                <span className="text-neutral-400 text-[11px] ml-0.5">p</span>
+              </form>
+            ) : (
+              <button
+                onClick={() => setIsEditingTotal(true)}
+                className="text-neutral-400 hover:text-neutral-800 transition-colors flex items-center gap-0.5"
+                title="클릭하여 전체 쪽수 수정"
+              >
+                <span>{book.total_pages > 0 ? `${book.total_pages}p` : '? p'}</span>
+                <Edit3 className="w-2.5 h-2.5 opacity-60 hover:opacity-100" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* 프로그레스 바 게이지 */}
