@@ -419,6 +419,24 @@ export default function HomePage() {
           />
         )}
 
+        {/* 4. 서비스 푸터 (개인정보처리방침 및 이용약관) */}
+        <footer className="mt-16 pt-8 pb-12 border-t border-[#E8E3D5] text-center space-y-2">
+          <div className="flex items-center justify-center gap-3 text-xs font-semibold text-neutral-600">
+            <a href="/privacy" className="hover:text-amber-700 transition-colors">
+              개인정보처리방침
+            </a>
+            <span className="text-neutral-300">·</span>
+            <a href="/terms" className="hover:text-amber-700 transition-colors">
+              이용약관
+            </a>
+            <span className="text-neutral-300">·</span>
+            <span className="text-neutral-400">개인정보 무수집 원칙 준수</span>
+          </div>
+          <p className="text-[11px] text-neutral-400">
+            © 2026 북튜닝 (Book Tuning) · 의미 있는 독서로 삶을 튜닝하자
+          </p>
+        </footer>
+
       </main>
 
       {/* 3. 모달 레이어들 */}

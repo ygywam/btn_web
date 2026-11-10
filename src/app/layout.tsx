@@ -2,9 +2,29 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://btnweb.vercel.app'),
   title: '북튜닝 | 의미 있는 독서로 삶을 튜닝하자',
   description: '노션보다 빠르고 편리한 소셜 독서 플랫폼. 개인 서재와 날짜별 공개 피드 커뮤니티.',
   manifest: '/manifest.json',
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: '북튜닝 | 의미 있는 독서로 삶을 튜닝하자',
+    description: '노션보다 빠르고 편리한 소셜 독서 플랫폼. 개인 서재와 날짜별 공개 피드 커뮤니티.',
+    url: 'https://btnweb.vercel.app',
+    siteName: '북튜닝 (Book Tuning)',
+    locale: 'ko_KR',
+    type: 'website',
+    images: [
+      {
+        url: '/icon.svg',
+        width: 512,
+        height: 512,
+        alt: '북튜닝 브랜드 로고',
+      },
+    ],
+  },
   icons: {
     icon: [
       { url: '/icon.svg', type: 'image/svg+xml' },
