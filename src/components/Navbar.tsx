@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { BookMarked, Compass, Plus, Film, HelpCircle, LogIn, LogOut, User, BarChart2, Pencil } from 'lucide-react';
+import { BookMarked, Compass, Plus, HelpCircle, LogIn, LogOut, User, BarChart2, Pencil } from 'lucide-react';
 import type { Profile } from '@/types/database';
 
 interface NavbarProps {
@@ -10,7 +10,6 @@ interface NavbarProps {
   onTabChange: (tab: 'library' | 'feed' | 'analytics') => void;
   onOpenSearch: () => void;
   onOpenNewPost: () => void;
-  onOpenPromo: () => void;
   onOpenTour: () => void;
   onOpenAuth: () => void;
   onOpenNickname: () => void;
@@ -23,7 +22,6 @@ export default function Navbar({
   onTabChange,
   onOpenSearch,
   onOpenNewPost,
-  onOpenPromo,
   onOpenTour,
   onOpenAuth,
   onOpenNickname,
@@ -118,17 +116,6 @@ export default function Navbar({
             className="touch-target px-2.5 sm:px-3.5 py-1.5 text-xs sm:text-sm font-bold text-slate-950 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:scale-95 rounded-xl shadow-sm shadow-amber-500/20 transition-all flex items-center gap-1 whitespace-nowrap"
           >
             <span>기록하기</span>
-          </button>
-
-          {/* 인트로 홍보 영상 다시보기 */}
-          <button
-            data-tour="promo-btn"
-            onClick={onOpenPromo}
-            className="touch-target p-1.5 sm:p-2 text-neutral-500 hover:text-neutral-800 rounded-xl hover:bg-neutral-200/50 transition-colors"
-            title="소개 영상 다시보기"
-            aria-label="소개 영상 다시보기"
-          >
-            <Film className="w-4 h-4" />
           </button>
 
           {/* 스포트라이트 가이드 다시보기 */}

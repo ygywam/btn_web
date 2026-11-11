@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, User, Check, Loader2 } from 'lucide-react';
-import { saveUserNickname } from '@/lib/auth';
+import { saveUserNickname, extractErrorMessage } from '@/lib/auth';
 import type { Profile } from '@/types/database';
 
 interface NicknameModalProps {
@@ -52,7 +52,12 @@ export default function NicknameModal({
       onClose();
     } catch (err) {
       console.error('닉네임 변경 오류:', err);
-      setError('닉네임 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+      setError(
+        extractErrorMessage(
+          err,
+          '닉네임 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'
+        )
+      );
     } finally {
       setIsSaving(false);
     }

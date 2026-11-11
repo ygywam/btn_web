@@ -7,6 +7,7 @@ import {
   signInWithEmail,
   signUpWithEmail,
   saveUserNickname,
+  extractErrorMessage,
 } from '@/lib/auth';
 import type { Profile } from '@/types/database';
 
@@ -52,8 +53,7 @@ export default function AuthForm({
       const profile = await signInWithGoogle();
       if (profile) onSuccess(profile);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : '구글 로그인에 실패했습니다.';
-      setErrorMessage(msg);
+      setErrorMessage(extractErrorMessage(err, '구글 로그인에 실패했습니다.'));
     } finally {
       setIsLoading(false);
     }
@@ -85,8 +85,7 @@ export default function AuthForm({
         setMode('NICKNAME');
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : '인증 과정에서 오류가 발생했습니다.';
-      setErrorMessage(msg);
+      setErrorMessage(extractErrorMessage(err, '인증 과정에서 오류가 발생했습니다.'));
     } finally {
       setIsLoading(false);
     }
@@ -101,8 +100,7 @@ export default function AuthForm({
       const profile = await saveUserNickname(nickname);
       onSuccess(profile);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : '닉네임 저장 실패';
-      setErrorMessage(msg);
+      setErrorMessage(extractErrorMessage(err, '닉네임 저장 실패'));
     } finally {
       setIsLoading(false);
     }

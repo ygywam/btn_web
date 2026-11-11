@@ -33,6 +33,24 @@ export function clearProfileStorage(): void {
 }
 
 /**
+ * Supabase 오류 객체({ message, code, details }) 및 일반 Error에서 읽기 쉬운 메시지 추출
+ */
+export function extractErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error && err.message) {
+    return err.message;
+  }
+  if (err && typeof err === 'object' && 'message' in err) {
+    const e = err as { message?: unknown; code?: unknown };
+    const msg = typeof e.message === 'string' ? e.message : '';
+    const code = typeof e.code === 'string' ? e.code : '';
+    if (msg) {
+      return code ? `${msg} (${code})` : msg;
+    }
+  }
+  return fallback;
+}
+
+/**
  * 이메일이나 빈 문자열이 자동 닉네임으로 노출되지 않도록 기본 별칭으로 정제
  */
 function sanitizeFallbackNickname(raw?: string | null): string {
@@ -51,17 +69,29 @@ export async function restoreSessionProfile(): Promise<Profile | null> {
   try {
     const {
       data: { session },
+      error: sessionError,
     } = await supabase.auth.getSession();
 
-    if (!session?.user) {
-      return cached;
+    if (sessionError) {
+      console.error('Supabase 세션 확인 실패:', sessionError);
+      return null;
     }
 
-    const { data: existing } = await supabase
+    if (!session?.user) {
+      // Supabase가 연동된 환경에서는 유효한 세션이 없으면 로컬 캐시를 정리해 잘못된 비인증 상태를 방지
+      clearProfileStorage();
+      return null;
+    }
+
+    const { data: existing, error: selectError } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', session.user.id)
       .maybeSingle();
+
+    if (selectError) {
+      console.error('프로필 조회 오류:', selectError);
+    }
 
     if (existing) {
       saveProfileToStorage(existing as Profile);
@@ -76,11 +106,26 @@ export async function restoreSessionProfile(): Promise<Profile | null> {
       avatar_url: session.user.user_metadata?.avatar_url || null,
       created_at: new Date().toISOString(),
     };
-    await supabase.from('profiles').upsert(created);
-    saveProfileToStorage(created);
-    return created;
-  } catch {
-    return cached;
+    const { data: inserted, error: insertError } = await supabase
+      .from('profiles')
+      .insert({
+        id: created.id,
+        nickname: created.nickname,
+        avatar_url: created.avatar_url,
+      })
+      .select()
+      .maybeSingle();
+
+    if (insertError) {
+      console.error('초기 프로필 생성 오류:', insertError);
+    }
+
+    const finalProfile = (inserted as Profile) || created;
+    saveProfileToStorage(finalProfile);
+    return finalProfile;
+  } catch (err) {
+    console.error('세션 복원 예외:', err);
+    return null;
   }
 }
 
@@ -189,22 +234,39 @@ export async function signUpWithEmail(
   }
 
   if (data.user && cleanNickname) {
-    const newProfile: Profile = {
+    const fallbackProfile: Profile = {
       id: data.user.id,
       nickname: cleanNickname.slice(0, 10),
       avatar_url: data.user.user_metadata?.avatar_url || null,
       created_at: new Date().toISOString(),
     };
-    await supabase.from('profiles').upsert(newProfile);
-    saveProfileToStorage(newProfile);
-    return { status: 'SUCCESS', profile: newProfile };
+    const { data: savedRow, error: profileError } = await supabase
+      .from('profiles')
+      .upsert(
+        {
+          id: fallbackProfile.id,
+          nickname: fallbackProfile.nickname,
+          avatar_url: fallbackProfile.avatar_url,
+        },
+        { onConflict: 'id' }
+      )
+      .select()
+      .maybeSingle();
+
+    if (profileError) {
+      console.error('회원가입 프로필 저장 오류:', profileError);
+    }
+
+    const finalProfile = (savedRow as Profile) || fallbackProfile;
+    saveProfileToStorage(finalProfile);
+    return { status: 'SUCCESS', profile: finalProfile };
   }
 
   return { status: 'NEEDS_NICKNAME' };
 }
 
 /**
- * 닉네임 저장 및 프로필 확정 (기존 로컬 식별자는 유지하고 Supabase profiles에도 동기화)
+ * 닉네임 저장 및 프로필 확정 (Supabase 연동 시 update/insert 분리 처리로 RLS·충돌 방지)
  */
 export async function saveUserNickname(nickname: string): Promise<Profile> {
   const cleanNickname = nickname.trim().slice(0, 10);
@@ -212,20 +274,61 @@ export async function saveUserNickname(nickname: string): Promise<Profile> {
 
   if (isSupabaseConfigured) {
     const {
-      data: { user },
+      data: { user: fetchedUser },
     } = await supabase.auth.getUser();
-    if (user) {
-      const newProfile: Profile = {
+    let user = fetchedUser;
+
+    if (!user) {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      user = session?.user ?? null;
+    }
+
+    if (!user) {
+      throw new Error('로그인 세션이 만료되었습니다. 로그아웃 후 다시 로그인해 주세요.');
+    }
+
+    const { data: existing, error: selectError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (selectError) {
+      throw new Error(`프로필 조회 실패: ${extractErrorMessage(selectError, 'DB 확인 필요')}`);
+    }
+
+    if (existing) {
+      const { data: updated, error: updateError } = await supabase
+        .from('profiles')
+        .update({ nickname: cleanNickname })
+        .eq('id', user.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        throw new Error(`닉네임 수정 실패: ${extractErrorMessage(updateError, '권한 확인 필요')}`);
+      }
+      saveProfileToStorage(updated as Profile);
+      return updated as Profile;
+    }
+
+    const { data: inserted, error: insertError } = await supabase
+      .from('profiles')
+      .insert({
         id: user.id,
         nickname: cleanNickname,
         avatar_url: user.user_metadata?.avatar_url || cached?.avatar_url || null,
-        created_at: cached?.created_at || new Date().toISOString(),
-      };
-      const { error } = await supabase.from('profiles').upsert(newProfile);
-      if (error) throw error;
-      saveProfileToStorage(newProfile);
-      return newProfile;
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      throw new Error(`프로필 생성 실패: ${extractErrorMessage(insertError, 'DB 확인 필요')}`);
     }
+    saveProfileToStorage(inserted as Profile);
+    return inserted as Profile;
   }
 
   const localProfile: Profile = {

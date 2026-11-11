@@ -1,34 +1,84 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Heart, MessageSquare, Quote, Share2, Send, Trash2, BookOpen } from 'lucide-react';
-import type { Post, Comment, Profile } from '@/types/database';
+import { Heart, MessageSquare, Quote, Share2, Send, Trash2, BookOpen, Loader2 } from 'lucide-react';
+import type { Post, Comment } from '@/types/database';
 
 interface FeedCardProps {
   post: Post;
   currentUserId?: string;
   onToggleLike: (postId: string) => void;
-  onAddComment: (postId: string, content: string) => void;
-  onDeleteComment?: (commentId: string) => void;
+  onLoadComments?: (postId: string) => Promise<Comment[]>;
+  onAddComment: (postId: string, content: string) => Promise<Comment | void> | void;
+  onDeleteComment?: (postId: string, commentId: string) => Promise<void> | void;
 }
 
 export default function FeedCard({
   post,
   currentUserId,
   onToggleLike,
+  onLoadComments,
   onAddComment,
   onDeleteComment,
 }: FeedCardProps) {
   const [showComments, setShowComments] = useState(false);
   const [commentInput, setCommentInput] = useState('');
   const [commentsList, setCommentsList] = useState<Comment[]>([]);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
-  const handleCommentSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (!showComments || !onLoadComments) return;
+    let cancelled = false;
+    setIsLoadingComments(true);
+    onLoadComments(post.id)
+      .then((list) => {
+        if (!cancelled) setCommentsList(list);
+      })
+      .catch((err) => console.error('댓글 목록 조회 실패:', err))
+      .finally(() => {
+        if (!cancelled) setIsLoadingComments(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [showComments, post.id, onLoadComments]);
+
+  const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!commentInput.trim()) return;
-    onAddComment(post.id, commentInput.trim());
-    setCommentInput('');
+    const text = commentInput.trim();
+    if (!text || isSubmittingComment) return;
+    setIsSubmittingComment(true);
+    try {
+      const created = await onAddComment(post.id, text);
+      if (created) {
+        setCommentsList((prev) => [...prev, created]);
+      } else {
+        // 로컬 모드 fallback
+        setCommentsList((prev) => [
+          ...prev,
+          {
+            id: `local-c-${Date.now()}`,
+            post_id: post.id,
+            user_id: currentUserId || 'default-user',
+            content: text,
+            created_at: new Date().toISOString(),
+            profiles: { id: currentUserId || 'default-user', nickname: '나', avatar_url: null, created_at: '' },
+          },
+        ]);
+      }
+      setCommentInput('');
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
+
+  const handleCommentDelete = async (commentId: string) => {
+    if (onDeleteComment) {
+      await onDeleteComment(post.id, commentId);
+    }
+    setCommentsList((prev) => prev.filter((c) => c.id !== commentId));
   };
 
   // 날짜 포맷 (예: 2026.11.10)
@@ -162,9 +212,57 @@ export default function FeedCard({
 
       {/* 6. 댓글 영역 (펼침/접힘) */}
       {showComments && (
-        <div className="mt-4 pt-3 border-t border-dashed border-neutral-200">
+        <div className="mt-4 pt-3 border-t border-dashed border-neutral-200 space-y-3">
+          {isLoadingComments ? (
+            <div className="flex items-center gap-2 text-xs text-neutral-400 py-1">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span>댓글을 불러오는 중...</span>
+            </div>
+          ) : commentsList.length > 0 ? (
+            <div className="space-y-2">
+              {commentsList.map((comment) => (
+                <div
+                  key={comment.id}
+                  className="flex items-start justify-between gap-2 p-2.5 rounded-xl bg-[#FAF8F0] border border-[#E8E3D5]/70"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-xs font-bold text-neutral-900">
+                        {comment.profiles?.nickname || '독서가'}
+                      </span>
+                      <time className="text-[10px] text-neutral-400">
+                        {new Date(comment.created_at).toLocaleDateString('ko-KR', {
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </time>
+                    </div>
+                    <p className="text-xs text-neutral-700 whitespace-pre-line break-words">
+                      {comment.content}
+                    </p>
+                  </div>
+                  {currentUserId && comment.user_id === currentUserId && (
+                    <button
+                      type="button"
+                      onClick={() => handleCommentDelete(comment.id)}
+                      className="p-1 text-neutral-400 hover:text-rose-600 rounded-lg transition-colors flex-shrink-0"
+                      title="댓글 삭제"
+                      aria-label="댓글 삭제"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[11px] text-neutral-400">
+              아직 댓글이 없습니다. 첫 번째 공감을 남겨보세요.
+            </p>
+          )}
+
           {/* 댓글 작성 폼 (화면 밖 삐져나감 방지 w-full min-w-0) */}
-          <form onSubmit={handleCommentSubmit} className="flex items-center gap-2 mb-3">
+          <form onSubmit={handleCommentSubmit} className="flex items-center gap-2">
             <input
               type="text"
               placeholder="따뜻한 한 줄 댓글을 남겨보세요..."
@@ -174,10 +272,14 @@ export default function FeedCard({
             />
             <button
               type="submit"
-              disabled={!commentInput.trim()}
+              disabled={!commentInput.trim() || isSubmittingComment}
               className="touch-target px-3 py-2 text-xs font-bold rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-slate-950 transition-all flex items-center gap-1 flex-shrink-0"
             >
-              <Send className="w-3.5 h-3.5" />
+              {isSubmittingComment ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Send className="w-3.5 h-3.5" />
+              )}
               <span className="hidden sm:inline">등록</span>
             </button>
           </form>

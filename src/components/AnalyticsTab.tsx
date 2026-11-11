@@ -4,11 +4,13 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { BookOpen, Sparkles, TrendingUp, Bookmark, Award, Search, Loader2, ArrowRight, UserCheck } from 'lucide-react';
 import type { Book, Post } from '@/types/database';
+import type { StatsDetailType } from '@/components/StatsDetailModal';
 
 interface AnalyticsTabProps {
   books: Book[];
   posts: Post[];
   onSearchBook: (bookTitle: string) => void;
+  onSelectStat?: (type: StatsDetailType) => void;
 }
 
 interface AiReport {
@@ -22,14 +24,16 @@ interface AiReport {
   }>;
 }
 
-export default function AnalyticsTab({ books, posts, onSearchBook }: AnalyticsTabProps) {
+export default function AnalyticsTab({ books, posts, onSearchBook, onSelectStat }: AnalyticsTabProps) {
   const [isLoadingAi, setIsLoadingAi] = useState(false);
   const [aiReport, setAiReport] = useState<AiReport | null>(null);
 
   // 기본 통계 계산
   const completedBooks = books.filter((b) => b.status === 'COMPLETED');
   const readingBooks = books.filter((b) => b.status === 'READING');
-  const quotesCount = posts.filter((p) => Boolean(p.quote)).length;
+  const quotesCount = posts.filter(
+    (p) => p.post_type === 'QUOTE' || Boolean(p.quote && p.quote.trim())
+  ).length;
   const totalPagesRead = books.reduce((acc, cur) => acc + (cur.current_page || 0), 0);
 
   // AI 분석 요청
@@ -65,39 +69,67 @@ export default function AnalyticsTab({ books, posts, onSearchBook }: AnalyticsTa
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       
-      {/* 1. 상단 통계 요약 카드 4종 */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div className="p-4 sm:p-5 bg-white border border-[#E8E3D5] rounded-3xl shadow-xs">
+      {/* 1. 상단 통계 요약 카드 4종 (클릭 시 세부 내역 모달 열기) */}
+      <div data-tour="analytics-section" className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <button
+          type="button"
+          onClick={() => onSelectStat?.('COMPLETED')}
+          className="text-left p-4 sm:p-5 bg-white border border-[#E8E3D5] hover:border-emerald-400 hover:shadow-md rounded-3xl shadow-xs transition-all group cursor-pointer"
+        >
           <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-800 mb-2">
             <Award className="w-5 h-5" />
           </div>
           <div className="text-xl sm:text-2xl font-extrabold text-neutral-900">{completedBooks.length}권</div>
-          <div className="text-xs text-neutral-500 font-medium">완독한 도서</div>
-        </div>
+          <div className="flex items-center justify-between text-xs text-neutral-500 font-medium">
+            <span>완독한 도서</span>
+            <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 text-emerald-600 transition-opacity" />
+          </div>
+        </button>
 
-        <div className="p-4 sm:p-5 bg-white border border-[#E8E3D5] rounded-3xl shadow-xs">
+        <button
+          type="button"
+          onClick={() => onSelectStat?.('READING')}
+          className="text-left p-4 sm:p-5 bg-white border border-[#E8E3D5] hover:border-amber-400 hover:shadow-md rounded-3xl shadow-xs transition-all group cursor-pointer"
+        >
           <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-800 mb-2">
             <BookOpen className="w-5 h-5" />
           </div>
           <div className="text-xl sm:text-2xl font-extrabold text-neutral-900">{readingBooks.length}권</div>
-          <div className="text-xs text-neutral-500 font-medium">읽고 있는 도서</div>
-        </div>
+          <div className="flex items-center justify-between text-xs text-neutral-500 font-medium">
+            <span>읽고 있는 도서</span>
+            <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 text-amber-600 transition-opacity" />
+          </div>
+        </button>
 
-        <div className="p-4 sm:p-5 bg-white border border-[#E8E3D5] rounded-3xl shadow-xs">
+        <button
+          type="button"
+          onClick={() => onSelectStat?.('PAGES')}
+          className="text-left p-4 sm:p-5 bg-white border border-[#E8E3D5] hover:border-blue-400 hover:shadow-md rounded-3xl shadow-xs transition-all group cursor-pointer"
+        >
           <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center text-blue-800 mb-2">
             <TrendingUp className="w-5 h-5" />
           </div>
           <div className="text-xl sm:text-2xl font-extrabold text-neutral-900">{totalPagesRead.toLocaleString()}p</div>
-          <div className="text-xs text-neutral-500 font-medium">누적 읽은 쪽수</div>
-        </div>
+          <div className="flex items-center justify-between text-xs text-neutral-500 font-medium">
+            <span>누적 읽은 쪽수</span>
+            <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 text-blue-600 transition-opacity" />
+          </div>
+        </button>
 
-        <div className="p-4 sm:p-5 bg-white border border-[#E8E3D5] rounded-3xl shadow-xs">
+        <button
+          type="button"
+          onClick={() => onSelectStat?.('QUOTES')}
+          className="text-left p-4 sm:p-5 bg-white border border-[#E8E3D5] hover:border-amber-400 hover:shadow-md rounded-3xl shadow-xs transition-all group cursor-pointer"
+        >
           <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-800 mb-2">
             <Bookmark className="w-5 h-5" />
           </div>
           <div className="text-xl sm:text-2xl font-extrabold text-neutral-900">{quotesCount}개</div>
-          <div className="text-xs text-neutral-500 font-medium">수집한 문장</div>
-        </div>
+          <div className="flex items-center justify-between text-xs text-neutral-500 font-medium">
+            <span>수집한 문장</span>
+            <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 text-amber-600 transition-opacity" />
+          </div>
+        </button>
       </div>
 
       {/* 2. AI 독서 비서: 성향 분석 및 다음에 읽을 책 추천 */}

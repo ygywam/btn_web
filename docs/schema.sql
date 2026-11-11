@@ -74,7 +74,7 @@ create policy "본인 프로필 등록 허용" on public.profiles
   for insert with check (auth.uid() = id);
 
 create policy "본인 프로필 수정 허용" on public.profiles
-  for update using (auth.uid() = id);
+  for update using (auth.uid() = id) with check (auth.uid() = id);
 
 -- books 정책
 create policy "본인 도서 전체 조회 허용" on public.books
@@ -84,7 +84,7 @@ create policy "본인 도서 추가 허용" on public.books
   for insert with check (auth.uid() = user_id);
 
 create policy "본인 도서 수정 허용" on public.books
-  for update using (auth.uid() = user_id);
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 create policy "본인 도서 삭제 허용" on public.books
   for delete using (auth.uid() = user_id);
@@ -97,7 +97,7 @@ create policy "본인 피드 작성 허용" on public.posts
   for insert with check (auth.uid() = user_id);
 
 create policy "본인 피드 수정 허용" on public.posts
-  for update using (auth.uid() = user_id);
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 create policy "본인 피드 삭제 허용" on public.posts
   for delete using (auth.uid() = user_id);
