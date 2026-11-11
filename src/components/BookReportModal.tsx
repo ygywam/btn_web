@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { X, Sparkles, BookOpen, Quote, FileText, Loader2, Copy, Check, Globe, Share2, Lightbulb } from 'lucide-react';
+import { X, Sparkles, BookOpen, Quote, FileText, Loader2, Copy, Check, Globe } from 'lucide-react';
 import type { Book, Post } from '@/types/database';
 
 interface BookReportModalProps {
@@ -89,7 +89,7 @@ export default function BookReportModal({
                 도서 종합 AI 독서감상문
               </h3>
               <p className="text-xs text-neutral-500">
-                수집한 문장과 사색 메모를 엮어 한 편의 깊이 있는 서평을 완성합니다.
+                수집한 문장과 메모를 모아 독서감상문 초안을 정리합니다.
               </p>
             </div>
           </div>
@@ -157,10 +157,10 @@ export default function BookReportModal({
               </div>
               <div className="space-y-1">
                 <h4 className="font-bold text-sm sm:text-base text-neutral-900">
-                  이 책에 남겨진 모든 기록을 종합해 서평을 작성할까요?
+                  이 책의 기록을 모아 감상문을 작성할까요?
                 </h4>
                 <p className="text-xs text-neutral-500 max-w-md mx-auto leading-relaxed">
-                  내가 밑줄 긋고 수집한 문장들과 읽으며 기록한 생각들을 AI가 하나로 엮어 <strong>서론-본론-결론</strong>의 완성도 높은 종합 독서감상문을 작성해 드립니다.
+                  저장된 문장과 메모를 서론·본론·결론 형식으로 정리합니다.
                 </p>
               </div>
 

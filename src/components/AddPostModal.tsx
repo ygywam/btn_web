@@ -1,8 +1,40 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Sparkles, Globe, Lock, Loader2, Quote, BookOpen, Send, Lightbulb, Camera, Image as ImageIcon } from 'lucide-react';
+import { X, Sparkles, Globe, Lock, Loader2, Quote, BookOpen, Send, Camera, HelpCircle } from 'lucide-react';
+import SpotlightCoachmark, { type TourStep } from '@/components/SpotlightCoachmark';
 import type { Book, PostType } from '@/types/database';
+
+const POST_MODAL_STEPS: TourStep[] = [
+  {
+    targetSelector: '[data-post-tour="book-select"]',
+    title: '1. 기록할 도서 선택',
+    description: '현재 기록이 저장될 책입니다. 책 카드에서 열면 해당 책으로 고정되며 [다른 책 선택]으로 변경할 수 있습니다.',
+  },
+  {
+    targetSelector: '[data-post-tour="post-type"]',
+    title: '2. 기록 유형 고르기',
+    description: '문장 수집(인용구·쪽수), 진도 & 메모(입력한 쪽수로 서재 진행률 자동 갱신), 자유 단상 중 원하는 형식을 선택합니다.',
+    postitTip: '진도 & 메모에 쪽수를 입력하면 내 서재 진도율이 바로 바뀝니다.',
+  },
+  {
+    targetSelector: '[data-post-tour="ocr-btn"]',
+    title: '3. 책 사진 스캔 (OCR)',
+    description: '카메라로 책 페이지를 찍거나 이미지를 고르면 본문 글자를 읽어 입력칸에 채워줍니다.',
+    postitTip: '개인정보나 얼굴·신분증이 찍히지 않게 책 페이지만 촬영하세요.',
+  },
+  {
+    targetSelector: '[data-post-tour="ai-btn"]',
+    title: '4. AI 독서노트',
+    description: '선택한 도서와 작성한 문장·메모를 바탕으로 독서감상문 초안을 정리해 줍니다.',
+    postitTip: '계정 정보는 빼고 책과 기록 본문만 전달됩니다.',
+  },
+  {
+    targetSelector: '[data-post-tour="visibility"]',
+    title: '5. 공개 범위 설정',
+    description: '기본값은 본인만 보는 비공개입니다. 스위치를 켜면 피드 탭에 전체 공개됩니다.',
+  },
+];
 
 interface AddPostModalProps {
   isOpen: boolean;
@@ -35,6 +67,7 @@ export default function AddPostModal({
   const [isPublic, setIsPublic] = useState(false); // 기본 비공개 원칙
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [isOcrProcessing, setIsOcrProcessing] = useState(false);
+  const [isPostTourOpen, setIsPostTourOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -173,34 +206,36 @@ export default function AddPostModal({
               독서 기록 & 문장 수집
             </h3>
             <p className="text-xs text-neutral-500">
-              책 속 인상 깊은 구절과 생각을 소중히 남겨보세요.
+              문장, 진도, 단상을 서재에 남깁니다.
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="touch-target p-2 text-neutral-400 hover:text-neutral-700 rounded-xl"
-            aria-label="닫기"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setIsPostTourOpen(true)}
+              className="touch-target px-2.5 py-1.5 text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl flex items-center gap-1 transition-colors"
+              title="독서 기록 사용법 보기"
+              aria-label="독서 기록 사용법 보기"
+            >
+              <HelpCircle className="w-3.5 h-3.5" />
+              <span>사용법</span>
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="touch-target p-2 text-neutral-400 hover:text-neutral-700 rounded-xl"
+              aria-label="닫기"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* 메인 폼 본문 */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-5 flex flex-col gap-4">
-          
-          {/* 모달 사용 팁 가이드 배너 */}
-          <div className="p-3 bg-amber-50/80 border border-amber-200/70 rounded-2xl text-[11px] sm:text-xs text-amber-950 flex items-start gap-2.5">
-            <Lightbulb className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-            <div className="space-y-0.5 leading-relaxed">
-              <span className="font-bold text-amber-900 block">💡 기록 & 스마트 OCR 가이드</span>
-              <p className="text-amber-800">
-                <strong>[📷 책 사진 스캔]</strong>을 누르면 카메라로 책을 찍어 문장을 바로 텍스트로 추출할 수 있습니다. 진도 메모에 쪽수를 적으면 내 책장의 진도율이 자동으로 업데이트됩니다.
-              </p>
-            </div>
-          </div>
 
           {/* 1. 도서 선택 */}
-          <div>
+          <div data-post-tour="book-select">
             <label className="block text-xs font-bold text-neutral-700 mb-1.5">
               기록할 도서
             </label>
@@ -255,7 +290,10 @@ export default function AddPostModal({
           </div>
 
           {/* 2. 기록 유형 탭 */}
-          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-neutral-100 text-xs font-semibold text-neutral-600">
+          <div
+            data-post-tour="post-type"
+            className="flex items-center gap-1.5 p-1 rounded-xl bg-neutral-100 text-xs font-semibold text-neutral-600"
+          >
             <button
               type="button"
               onClick={() => setPostType('QUOTE')}
@@ -318,6 +356,7 @@ export default function AddPostModal({
                 {/* 카메라 OCR 버튼 */}
                 <button
                   type="button"
+                  data-post-tour="ocr-btn"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isOcrProcessing}
                   className="touch-target px-2.5 py-1 text-[11px] font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 active:scale-95 rounded-lg flex items-center gap-1 transition-all"
@@ -328,13 +367,13 @@ export default function AddPostModal({
                   ) : (
                     <Camera className="w-3.5 h-3.5 text-amber-700" />
                   )}
-                  <span>{isOcrProcessing ? '글자 읽는 중...' : '📷 책 사진 스캔'}</span>
+                  <span>{isOcrProcessing ? '글자 읽는 중...' : '책 사진 스캔'}</span>
                 </button>
               </div>
 
               <textarea
                 rows={3}
-                placeholder="책 속의 아름다운 문장을 그대로 적거나, 상단의 [📷 책 사진 스캔]으로 촬영해 보세요..."
+                placeholder="책 속 문장을 적거나 상단의 [책 사진 스캔]으로 불러오세요."
                 value={quote}
                 onChange={(e) => setQuote(e.target.value)}
                 className="w-full min-w-0 p-2 text-xs sm:text-sm rounded-lg bg-white border border-amber-200 focus:outline-none focus:ring-1 focus:ring-amber-500 text-neutral-800"
@@ -365,6 +404,7 @@ export default function AddPostModal({
                 {postType !== 'QUOTE' && (
                   <button
                     type="button"
+                    data-post-tour="ocr-btn"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isOcrProcessing}
                     className="touch-target px-2 py-1 text-[11px] font-bold text-neutral-700 bg-neutral-100 hover:bg-neutral-200 active:scale-95 rounded-lg flex items-center gap-1 transition-all"
@@ -380,24 +420,25 @@ export default function AddPostModal({
 
                 <button
                   type="button"
+                  data-post-tour="ai-btn"
                   onClick={handleAiGenerate}
                   disabled={isGeneratingAi}
                   className="touch-target px-2.5 py-1 text-[11px] font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 active:scale-95 rounded-lg flex items-center gap-1 transition-all"
-                  title="AI가 책 정보와 문장을 분석해 감상문 작성을 도와줍니다"
+                  title="책 정보와 작성한 메모를 바탕으로 감상문 초안을 정리합니다"
                 >
                   {isGeneratingAi ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
                     <Sparkles className="w-3.5 h-3.5 text-amber-600" />
                   )}
-                  <span>✨ AI 독서노트 작성</span>
+                  <span>AI 독서노트 작성</span>
                 </button>
               </div>
             </div>
 
             <textarea
               rows={4}
-              placeholder="이 구절을 읽으며 떠오른 생각, 오늘 독서의 소감과 단상을 자유롭게 적어보세요..."
+              placeholder="책을 읽으며 떠오른 생각이나 메모를 적어 주세요."
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="w-full min-w-0 p-3 text-xs sm:text-sm rounded-xl bg-neutral-50 border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-amber-500 text-neutral-900"
@@ -405,7 +446,10 @@ export default function AddPostModal({
           </div>
 
           {/* 6. 공개 / 비공개 토글 */}
-          <div className="flex items-center justify-between p-3 rounded-xl bg-[#FAF8F0] border border-[#E8E3D5]">
+          <div
+            data-post-tour="visibility"
+            className="flex items-center justify-between p-3 rounded-xl bg-[#FAF8F0] border border-[#E8E3D5]"
+          >
             <div className="flex items-center gap-2">
               {isPublic ? (
                 <Globe className="w-4 h-4 text-emerald-600" />
@@ -455,6 +499,18 @@ export default function AddPostModal({
         </form>
 
       </div>
+
+      {/* 독서 기록 모달 전용 포스트잇 튜토리얼 */}
+      {isPostTourOpen && (
+        <SpotlightCoachmark
+          forceOpen={true}
+          onClose={() => setIsPostTourOpen(false)}
+          steps={POST_MODAL_STEPS}
+          storageKey=""
+          badgeLabel="기록 작성 사용법"
+          zIndexClass="z-[60]"
+        />
+      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { Search, X, Loader2, BookPlus, BookOpen, Lightbulb, Check } from 'lucide-react';
+import { Search, X, Loader2, BookPlus, BookOpen, Check } from 'lucide-react';
 import type { KakaoBookItem, BookStatus } from '@/types/database';
 
 interface BookSearchModalProps {
@@ -94,7 +94,7 @@ export default function BookSearchModal({
               도서 검색 및 서재 등록
             </h3>
             <p className="text-xs text-neutral-500">
-              카카오 도서 검색으로 책을 찾고 내 서재에 추가하세요.
+              제목이나 저자로 책을 찾아 내 서재에 등록합니다.
             </p>
           </div>
           <button
@@ -106,20 +106,8 @@ export default function BookSearchModal({
           </button>
         </div>
 
-        {/* 검색 폼 및 사용 팁 */}
-        <div className="p-4 sm:p-5 border-b border-neutral-100 bg-[#FAF8F0]/50 space-y-3">
-          
-          {/* 모달 사용 팁 가이드 배너 */}
-          <div className="p-3 bg-amber-50/80 border border-amber-200/70 rounded-2xl text-[11px] sm:text-xs text-amber-950 flex items-start gap-2.5">
-            <Lightbulb className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-            <div className="space-y-0.5 leading-relaxed">
-              <span className="font-bold text-amber-900 block">💡 쪽수 및 완독 안내</span>
-              <p className="text-amber-800">
-                카카오 API는 책 제목/저자만 제공하므로, 책을 담을 때 <strong>전체 쪽수</strong>를 직접 확인해 입력하실 수 있습니다. 진도율이 100%가 되면 시스템이 <strong>자동으로 완독 처리</strong>합니다.
-              </p>
-            </div>
-          </div>
-
+        {/* 검색 폼 */}
+        <div className="p-4 sm:p-5 border-b border-neutral-100 bg-[#FAF8F0]/50">
           <form onSubmit={handleSearch} className="flex gap-2">
             <div className="relative flex-1 min-w-0">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />

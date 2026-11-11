@@ -44,12 +44,11 @@ export default function EntryGate({ onSuccess }: EntryGateProps) {
           </h1>
 
           <p className="text-amber-300/95 font-semibold text-center text-sm sm:text-base mb-2">
-            의미 있는 독서로 당신의 삶의 주파수를 맞추세요
+            의미 있는 독서로 삶을 기록하세요
           </p>
 
           <p className="text-white/65 px-2 sm:px-8 text-center text-xs sm:text-sm md:text-base max-w-xl mx-auto leading-relaxed">
-            세상의 소음은 잠시 끄고, 책 속 한 문장과 내면의 사유를 기록하는 프라이빗 독서 아카이브.
-            오늘의 페이지로 나만의 리듬을 조율해 보세요.
+            책 속 문장과 독서 진도를 차곡차곡 남기는 개인 서재 공간입니다.
           </p>
 
           {/* 상태 인디케이터 (레퍼런스 핑 모션) */}
@@ -59,7 +58,7 @@ export default function EntryGate({ onSuccess }: EntryGateProps) {
               <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
             </span>
             <p className="text-xs text-emerald-400 font-medium">
-              한 번 로그인하면 브라우저에 저장되어 다음엔 바로 서재로 입장합니다
+              한 번 로그인하면 다음 방문 시 바로 서재로 입장합니다
             </p>
           </div>
 
@@ -108,9 +107,9 @@ export default function EntryGate({ onSuccess }: EntryGateProps) {
             />
           </div>
 
-          {/* 하단 개인정보 무수집 안내 및 약관 링크 */}
+          {/* 하단 운영자 정보 및 방침·약관 링크 */}
           <div className="mt-6 pt-4 border-t border-white/10 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-neutral-400">
-            <span>개인정보 무수집 원칙 준수</span>
+            <span>운영: 조용희(서울외고, 활동명: 기록조율사 · @record_tuner)</span>
             <span>·</span>
             <a href="/privacy" className="hover:text-amber-300 underline underline-offset-2 transition-colors">
               개인정보처리방침

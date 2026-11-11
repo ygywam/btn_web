@@ -8,6 +8,7 @@ import SpotlightCoachmark from '@/components/SpotlightCoachmark';
 import BookSearchModal from '@/components/BookSearchModal';
 import AddPostModal from '@/components/AddPostModal';
 import AuthModal from '@/components/AuthModal';
+import NicknameModal from '@/components/NicknameModal';
 import BookCard from '@/components/BookCard';
 import FeedCard from '@/components/FeedCard';
 import AnalyticsTab from '@/components/AnalyticsTab';
@@ -30,6 +31,7 @@ export default function HomePage() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isAddPostOpen, setIsAddPostOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isNicknameOpen, setIsNicknameOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [forcePromo, setForcePromo] = useState(false);
   const [forceTour, setForceTour] = useState(false);
@@ -328,6 +330,7 @@ export default function HomePage() {
         onOpenPromo={() => setForcePromo(true)}
         onOpenTour={() => setForceTour(true)}
         onOpenAuth={() => setIsAuthOpen(true)}
+        onOpenNickname={() => setIsNicknameOpen(true)}
         profile={profile}
         onSignOut={handleSignOut}
       />
@@ -501,9 +504,9 @@ export default function HomePage() {
           />
         )}
 
-        {/* 4. 서비스 푸터 (개인정보처리방침 및 이용약관) */}
+        {/* 4. 서비스 푸터 (개인정보처리방침, 이용약관, 운영자 안내) */}
         <footer className="mt-16 pt-8 pb-12 border-t border-[#E8E3D5] text-center space-y-2">
-          <div className="flex items-center justify-center gap-3 text-xs font-semibold text-neutral-600">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs font-semibold text-neutral-600">
             <a href="/privacy" className="hover:text-amber-700 transition-colors">
               개인정보처리방침
             </a>
@@ -512,7 +515,7 @@ export default function HomePage() {
               이용약관
             </a>
             <span className="text-neutral-300">·</span>
-            <span className="text-neutral-400">개인정보 무수집 원칙 준수</span>
+            <span className="text-neutral-500">운영: 조용희(서울외고, 활동명: 기록조율사 · @record_tuner)</span>
           </div>
           <p className="text-[11px] text-neutral-400">
             © 2026 북튜닝 (Book Tuning) · 의미 있는 독서로 삶을 튜닝하자
@@ -559,6 +562,24 @@ export default function HomePage() {
         onSuccess={(p) => {
           saveProfileToStorage(p);
           setProfile(p);
+        }}
+      />
+
+      {/* (5-2) 닉네임 변경 모달 */}
+      <NicknameModal
+        isOpen={isNicknameOpen}
+        onClose={() => setIsNicknameOpen(false)}
+        currentProfile={profile}
+        onSaved={(updated) => {
+          setProfile(updated);
+          // 기존에 내 ID로 작성된 로컬 피드 카드의 작성자 표기도 즉시 갱신
+          setPosts((prev) =>
+            prev.map((post) =>
+              post.user_id === updated.id
+                ? { ...post, profiles: updated }
+                : post
+            )
+          );
         }}
       />
 

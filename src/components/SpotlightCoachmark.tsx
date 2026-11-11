@@ -1,51 +1,96 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, ArrowRight, Check, X, HelpCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useLayoutEffect, useRef, useId } from 'react';
+import { ArrowLeft, ArrowRight, Check, X } from 'lucide-react';
 
 export interface TourStep {
   targetSelector: string;
   title: string;
   description: string;
-  postitTip: string;
+  postitTip?: string;
 }
 
-const DEFAULT_STEPS: TourStep[] = [
-  {
-    targetSelector: '[data-tour="search-btn"]',
-    title: '1. 카카오 도서 검색',
-    description: '읽고 싶은 책을 제목이나 저자로 검색해 보세요. 표지 이미지와 전체 쪽수를 자동으로 가져와 내 책장에 등록합니다.',
-    postitTip: '💡 팁: 카카오 검색으로 책 표지와 저자 정보를 1초 만에 담을 수 있어요!',
-  },
+export const DEFAULT_NAVBAR_STEPS: TourStep[] = [
   {
     targetSelector: '[data-tour="reading-status"]',
-    title: '2. 독서 상태 & 진도율(%) 관리',
-    description: '읽는 중, 완독, 읽고 싶은 책으로 나누고, 오늘 읽은 페이지를 입력하면 실시간으로 진도율 게이지가 채워집니다.',
-    postitTip: '📌 팁: 페이지 숫자만 바꾸면 퍼센트(%)가 알아서 계산돼요.',
-  },
-  {
-    targetSelector: '[data-tour="write-post"]',
-    title: '3. 문장 수집 & 기록 남기기',
-    description: '책 속 감동적인 문장이나 생각을 기록하세요. [전체 공개] 스위치를 켜면 피드에 공유할 수 있습니다.',
-    postitTip: '✨ 팁: 기본값은 나만 보는 "비공개"라 안심하고 솔직하게 쓸 수 있어요!',
+    title: '1. 내 서재',
+    description: '등록한 책 목록을 읽는 중·완독·읽고 싶은 책으로 나누어 관리하고 읽은 쪽수를 기록합니다.',
+    postitTip: '쪽수를 올리면 진행률(%)이 바로 계산됩니다.',
   },
   {
     targetSelector: '[data-tour="explore-feed"]',
-    title: '4. 소셜 탐색 피드 & 소통',
-    description: '다른 이웃 독서가들이 공개한 문장과 독서 기록을 둘러보고 하트(좋아요)와 댓글로 따뜻하게 응원해 보세요.',
-    postitTip: '💬 팁: 마음에 드는 문장에 하트를 누르면 공감이 전해져요.',
+    title: '2. 공개 피드',
+    description: '다른 독서가가 전체 공개로 남긴 문장과 독서 감상을 둘러보는 공간입니다.',
+    postitTip: '하트(공감)와 댓글로 의견을 나눌 수 있습니다.',
+  },
+  {
+    targetSelector: '[data-tour="analytics-tab"]',
+    title: '3. 독서 통계',
+    description: '완독한 책 수, 누적 읽은 쪽수, 많이 만난 작가와 AI 독서 성향 분석을 확인합니다.',
+    postitTip: '진도율 100%를 채우면 완독 목록에 자동 추가됩니다.',
+  },
+  {
+    targetSelector: '[data-tour="search-btn"]',
+    title: '4. 도서 검색',
+    description: '책 제목이나 저자를 검색해 표지 정보를 불러오고 전체 쪽수를 입력해 서재에 담습니다.',
+    postitTip: '서재에 책을 먼저 등록해야 책별 감상문을 묶을 수 있습니다.',
+  },
+  {
+    targetSelector: '[data-tour="write-post"]',
+    title: '5. 기록하기',
+    description: '문장 수집, 진도·메모, 자유 단상을 남깁니다. 기록 창 우측 상단의 [사용법]에서 세부 기능도 볼 수 있습니다.',
+    postitTip: '기본값은 나만 보는 비공개입니다.',
+  },
+  {
+    targetSelector: '[data-tour="promo-btn"]',
+    title: '6. 소개 영상',
+    description: '북튜닝 소개 슬라이드를 다시 엽니다.',
+    postitTip: '다시 보지 않기를 켜두셨더라도 이 버튼으로 언제든 볼 수 있습니다.',
+  },
+  {
+    targetSelector: '[data-tour="tour-btn"]',
+    title: '7. 사용법 가이드',
+    description: '상단 버튼 설명 포스트잇을 언제든 다시 실행합니다.',
+  },
+  {
+    targetSelector: '[data-tour="nickname-btn"]',
+    title: '8. 닉네임 확인 & 변경',
+    description: '현재 로그인된 활동 닉네임을 보여줍니다. 클릭하면 언제든 원하는 닉네임(2~10자)으로 바꿀 수 있습니다.',
+    postitTip: '이메일 대신 사용할 별칭을 입력해 주세요.',
+  },
+  {
+    targetSelector: '[data-tour="logout-btn"]',
+    title: '9. 로그아웃',
+    description: '현재 계정을 로그아웃하고 첫 로그인 화면으로 돌아갑니다.',
+    postitTip: '공용 컴퓨터에서는 사용 후 로그아웃해 주세요.',
   },
 ];
 
 interface SpotlightCoachmarkProps {
   forceOpen?: boolean;
   onClose?: () => void;
+  steps?: TourStep[];
+  /** localStorage 자동 실행 플래그 키 (undefined면 자동 실행 없이 forceOpen으로만 제어) */
+  storageKey?: string;
+  badgeLabel?: string;
+  zIndexClass?: string;
 }
 
-export default function SpotlightCoachmark({ forceOpen = false, onClose }: SpotlightCoachmarkProps) {
+export default function SpotlightCoachmark({
+  forceOpen = false,
+  onClose,
+  steps = DEFAULT_NAVBAR_STEPS,
+  storageKey = 'booktuning_coachmark_done',
+  badgeLabel = '사용법 안내',
+  zIndexClass = 'z-50',
+}: SpotlightCoachmarkProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+  const [viewport, setViewport] = useState({ width: 1280, height: 800 });
+  const [cardHeight, setCardHeight] = useState(240);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const maskId = useId();
 
   // 실행 조건 체크
   useEffect(() => {
@@ -54,45 +99,83 @@ export default function SpotlightCoachmark({ forceOpen = false, onClose }: Spotl
       setIsOpen(true);
       return;
     }
-    const seen = localStorage.getItem('booktuning_coachmark_done');
-    // 인트로 영상이 먼저 끝난 뒤에 작동하도록 약 1초 후 체크
+    if (!storageKey) return;
+
+    const seen = localStorage.getItem(storageKey);
     const timer = setTimeout(() => {
       const introSeen = localStorage.getItem('booktuning_promo_dismissed');
       if (!seen && introSeen) {
+        setCurrentStep(0);
         setIsOpen(true);
       }
     }, 1200);
 
     return () => clearTimeout(timer);
-  }, [forceOpen]);
+  }, [forceOpen, storageKey]);
 
-  // 대상 요소 위치 계산
+  // 대상 요소 위치 계산 및 필요 시 뷰포트 안으로 스크롤
   const updateTargetPosition = useCallback(() => {
     if (!isOpen) return;
-    const step = DEFAULT_STEPS[currentStep];
+    setViewport({ width: window.innerWidth, height: window.innerHeight });
+
+    const step = steps[currentStep];
+    if (!step) {
+      setTargetRect(null);
+      return;
+    }
     const el = document.querySelector(step.targetSelector);
     if (el) {
       const rect = el.getBoundingClientRect();
-      setTargetRect(rect);
-      // 화면 밖이면 부드럽게 스크롤
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // 스티키 헤더 등 이미 화면 안에 있는 요소는 불필요하게 스크롤하지 않음
+      if (rect.top < 0 || rect.bottom > window.innerHeight) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        requestAnimationFrame(() => {
+          setTargetRect(el.getBoundingClientRect());
+        });
+      } else {
+        setTargetRect(rect);
+      }
     } else {
       setTargetRect(null);
     }
-  }, [isOpen, currentStep]);
+  }, [isOpen, currentStep, steps]);
 
   useEffect(() => {
     updateTargetPosition();
     window.addEventListener('resize', updateTargetPosition);
-    window.addEventListener('scroll', updateTargetPosition);
+    window.addEventListener('scroll', updateTargetPosition, true);
     return () => {
       window.removeEventListener('resize', updateTargetPosition);
-      window.removeEventListener('scroll', updateTargetPosition);
+      window.removeEventListener('scroll', updateTargetPosition, true);
     };
   }, [updateTargetPosition]);
 
+  // 포스트잇 높이 측정 (하단 잘림/버튼 가림 방지)
+  useLayoutEffect(() => {
+    if (isOpen && cardRef.current) {
+      setCardHeight(cardRef.current.offsetHeight);
+    }
+  }, [isOpen, currentStep, viewport.width]);
+
+  const handleComplete = useCallback(() => {
+    if (storageKey) {
+      localStorage.setItem(storageKey, 'true');
+    }
+    setIsOpen(false);
+    if (onClose) onClose();
+  }, [storageKey, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleComplete();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, handleComplete]);
+
   const handleNext = () => {
-    if (currentStep < DEFAULT_STEPS.length - 1) {
+    if (currentStep < steps.length - 1) {
       setCurrentStep((prev) => prev + 1);
     } else {
       handleComplete();
@@ -105,94 +188,155 @@ export default function SpotlightCoachmark({ forceOpen = false, onClose }: Spotl
     }
   };
 
-  const handleComplete = () => {
-    localStorage.setItem('booktuning_coachmark_done', 'true');
-    setIsOpen(false);
-    if (onClose) onClose();
-  };
+  if (!isOpen || !steps[currentStep]) return null;
 
-  if (!isOpen) return null;
+  const step = steps[currentStep];
 
-  const step = DEFAULT_STEPS[currentStep];
+  // 스포트라이트 구멍 여백
+  const pad = 6;
+  const spotTop = targetRect ? Math.max(0, targetRect.top - pad) : 0;
+  const spotLeft = targetRect ? Math.max(0, targetRect.left - pad) : 0;
+  const spotWidth = targetRect ? targetRect.width + pad * 2 : 0;
+  const spotHeight = targetRect ? targetRect.height + pad * 2 : 0;
 
-  // 스포트라이트 구멍 여백 (패딩)
-  const pad = 8;
-  const top = targetRect ? Math.max(0, targetRect.top - pad) : 0;
-  const left = targetRect ? Math.max(0, targetRect.left - pad) : 0;
-  const width = targetRect ? targetRect.width + pad * 2 : 0;
-  const height = targetRect ? targetRect.height + pad * 2 : 0;
+  // 포스트잇 카드가 타깃 버튼을 따라다니도록 동적 좌표 계산
+  const edgeMargin = 12;
+  const gap = 14;
+  const cardWidth = Math.min(360, Math.max(260, viewport.width - edgeMargin * 2));
+
+  let cardLeft = Math.max(edgeMargin, (viewport.width - cardWidth) / 2);
+  let cardTop = Math.max(edgeMargin, (viewport.height - cardHeight) / 2);
+  let placement: 'bottom' | 'top' | 'none' = 'none';
+  let arrowLeft = cardWidth / 2;
+
+  if (targetRect) {
+    const targetCenterX = targetRect.left + targetRect.width / 2;
+    const targetCenterY = targetRect.top + targetRect.height / 2;
+
+    // 수평 위치: 타깃 중심에 맞추되 화면 양끝 밖으로 나가지 않게 클램프
+    cardLeft = Math.max(
+      edgeMargin,
+      Math.min(viewport.width - cardWidth - edgeMargin, targetCenterX - cardWidth / 2)
+    );
+
+    const spaceBelow = viewport.height - targetRect.bottom - gap - edgeMargin;
+    const spaceAbove = targetRect.top - gap - edgeMargin;
+
+    if (spaceBelow >= cardHeight) {
+      cardTop = targetRect.bottom + gap;
+      placement = 'bottom';
+    } else if (spaceAbove >= cardHeight) {
+      cardTop = targetRect.top - cardHeight - gap;
+      placement = 'top';
+    } else if (targetCenterY <= viewport.height / 2) {
+      // 타깃이 화면 상단 절반에 있으면 카드의 윗변을 타깃 아래쪽에 배치 (공간 최대 확보)
+      cardTop = Math.min(
+        viewport.height - cardHeight - edgeMargin,
+        Math.max(targetRect.bottom + gap, viewport.height - cardHeight - edgeMargin)
+      );
+      placement = 'bottom';
+    } else {
+      // 타깃이 화면 하단 절반에 있으면 카드를 상단에 배치하여 타깃이 가려지지 않게 보호
+      cardTop = edgeMargin;
+      placement = cardTop + cardHeight < targetRect.top ? 'top' : 'none';
+    }
+
+    arrowLeft = Math.max(22, Math.min(cardWidth - 22, targetCenterX - cardLeft));
+  }
+
+  const overlapsTarget =
+    targetRect !== null &&
+    cardTop < targetRect.bottom + 4 &&
+    cardTop + cardHeight > targetRect.top - 4;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden pointer-events-auto">
-      {/* 
-        스포트라이트 구멍 뚫기 SVG 마스크 
-        어두운 반투명 회색 배경 위에 타깃 요소 영역만 투명하게 구멍을 냄
-      */}
+    <div className={`fixed inset-0 ${zIndexClass} overflow-hidden pointer-events-auto`}>
+      {/* 스포트라이트 구멍 뚫기 SVG 마스크 (useId로 다중 인스턴스 ID 충돌 방지) */}
       <svg className="absolute inset-0 w-full h-full pointer-events-none transition-all duration-300">
         <defs>
-          <mask id="spotlight-mask">
-            {/* 전체 흰색 (불투명 배경) */}
+          <mask id={maskId}>
             <rect width="100%" height="100%" fill="white" />
-            {/* 타깃 요소 구멍 (검은색 = 투명) */}
             {targetRect && (
               <rect
-                x={left}
-                y={top}
-                width={width}
-                height={height}
-                rx="14"
+                x={spotLeft}
+                y={spotTop}
+                width={spotWidth}
+                height={spotHeight}
+                rx="12"
                 fill="black"
               />
             )}
           </mask>
         </defs>
-        {/* 마스크를 적용한 어두운 딤 오버레이 */}
         <rect
-          width="100%" height="100%"
+          width="100%"
+          height="100%"
           fill="rgba(15, 23, 42, 0.72)"
-          mask="url(#spotlight-mask)"
+          mask={`url(#${maskId})`}
         />
       </svg>
 
       {/* 타깃 박스 하이라이트 테두리 링 */}
       {targetRect && (
         <div
-          className="absolute border-2 border-amber-400 rounded-2xl pointer-events-none transition-all duration-300 shadow-[0_0_25px_rgba(251,191,36,0.5)]"
+          className="absolute border-2 border-amber-400 rounded-2xl pointer-events-none transition-all duration-300 shadow-[0_0_24px_rgba(251,191,36,0.55)]"
           style={{
-            top: `${top}px`,
-            left: `${left}px`,
-            width: `${width}px`,
-            height: `${height}px`,
+            top: `${spotTop}px`,
+            left: `${spotLeft}px`,
+            width: `${spotWidth}px`,
+            height: `${spotHeight}px`,
           }}
         />
       )}
 
-      {/* 
-        포스트잇 툴팁 카드:
-        모바일에서는 하단 고정 시트 형태로 안전하게 배치,
-        데스크탑에서는 타깃 위치에 따라 위/아래 스마트 플로팅
-      */}
-      <div className="fixed bottom-4 inset-x-4 sm:inset-x-auto sm:bottom-auto sm:top-24 sm:right-10 sm:max-w-md z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
-        <div className="relative bg-[#FFFBEB] border-2 border-[#F59E0B] rounded-2xl p-5 shadow-2xl text-[#1E232A]">
+      {/* 강조된 버튼을 따라 이동하는 포스트잇 카드 */}
+      <div
+        ref={cardRef}
+        className="fixed transition-all duration-300 ease-out"
+        style={{
+          top: `${cardTop}px`,
+          left: `${cardLeft}px`,
+          width: `${cardWidth}px`,
+        }}
+      >
+        <div className="relative bg-[#FFFBEB] border-2 border-[#F59E0B] rounded-2xl p-4 sm:p-5 shadow-2xl text-[#1E232A]">
+          {/* 말풍선 방향 꼬리 (타깃 버튼 위치를 직접 가리킴) */}
+          {targetRect && !overlapsTarget && placement === 'bottom' && (
+            <div
+              aria-hidden="true"
+              className="absolute -top-2 w-3.5 h-3.5 bg-[#FFFBEB] border-l-2 border-t-2 border-[#F59E0B] rotate-45 -translate-x-1/2 transition-all duration-300"
+              style={{ left: `${arrowLeft}px` }}
+            />
+          )}
+          {targetRect && !overlapsTarget && placement === 'top' && (
+            <div
+              aria-hidden="true"
+              className="absolute -bottom-2 w-3.5 h-3.5 bg-[#FFFBEB] border-r-2 border-b-2 border-[#F59E0B] rotate-45 -translate-x-1/2 transition-all duration-300"
+              style={{ left: `${arrowLeft}px` }}
+            />
+          )}
+
           {/* 상단 포스트잇 핀 & 스텝 번호 */}
-          <div className="flex items-center justify-between pb-3 border-b border-amber-200/80 mb-3">
+          <div className="flex items-center justify-between pb-2.5 border-b border-amber-200/80 mb-2.5">
             <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-amber-500 shadow-inner" />
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-800">
-                가이드 튜토리얼 ({currentStep + 1} / {DEFAULT_STEPS.length})
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-inner" />
+              <span className="text-[11px] font-bold tracking-wide text-amber-800">
+                {badgeLabel} ({currentStep + 1} / {steps.length})
               </span>
             </div>
             <button
+              type="button"
               onClick={handleComplete}
               className="touch-target p-1 text-neutral-400 hover:text-neutral-700 rounded-lg"
               title="가이드 닫기"
+              aria-label="가이드 닫기"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* 제목 */}
-          <h3 className="text-base sm:text-lg font-bold text-neutral-900 mb-1.5">
+          <h3 className="text-sm sm:text-base font-bold text-neutral-900 mb-1">
             {step.title}
           </h3>
 
@@ -201,25 +345,29 @@ export default function SpotlightCoachmark({ forceOpen = false, onClose }: Spotl
             {step.description}
           </p>
 
-          {/* 포스트잇 메모 팁 박스 */}
-          <div className="p-2.5 rounded-xl bg-amber-100/70 border border-amber-300/60 text-xs text-amber-900 font-medium mb-4">
-            {step.postitTip}
-          </div>
+          {/* 선택적 메모 박스 */}
+          {step.postitTip && (
+            <div className="px-2.5 py-2 rounded-xl bg-amber-100/75 border border-amber-300/60 text-[11px] sm:text-xs text-amber-900 font-medium mb-3.5">
+              {step.postitTip}
+            </div>
+          )}
 
-          {/* 하단 컨트롤 버튼 (모바일에서 겹치지 않도록 충분한 간격과 터치 타깃 확보) */}
-          <div className="flex items-center justify-between gap-2 pt-1">
+          {/* 하단 컨트롤 버튼 */}
+          <div className="flex items-center justify-between gap-2 pt-0.5">
             <button
+              type="button"
               onClick={handleComplete}
-              className="touch-target px-3 py-2 text-xs font-semibold text-neutral-500 hover:text-neutral-800 rounded-xl hover:bg-amber-200/50 transition-colors"
+              className="touch-target px-2.5 py-1.5 text-xs font-semibold text-neutral-500 hover:text-neutral-800 rounded-xl hover:bg-amber-200/50 transition-colors"
             >
               건너뛰기
             </button>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               {currentStep > 0 && (
                 <button
+                  type="button"
                   onClick={handlePrev}
-                  className="touch-target px-3.5 py-2 text-xs font-semibold text-neutral-700 bg-amber-200/60 hover:bg-amber-200 rounded-xl flex items-center gap-1 transition-all"
+                  className="touch-target px-3 py-1.5 text-xs font-semibold text-neutral-700 bg-amber-200/60 hover:bg-amber-200 rounded-xl flex items-center gap-1 transition-all"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   이전
@@ -227,13 +375,14 @@ export default function SpotlightCoachmark({ forceOpen = false, onClose }: Spotl
               )}
 
               <button
+                type="button"
                 onClick={handleNext}
-                className="touch-target px-4 py-2 text-xs sm:text-sm font-bold text-slate-950 bg-amber-500 hover:bg-amber-400 active:scale-95 rounded-xl shadow-md shadow-amber-500/20 flex items-center gap-1.5 transition-all"
+                className="touch-target px-3.5 py-1.5 text-xs sm:text-sm font-bold text-slate-950 bg-amber-500 hover:bg-amber-400 active:scale-95 rounded-xl shadow-md shadow-amber-500/20 flex items-center gap-1 transition-all"
               >
-                {currentStep === DEFAULT_STEPS.length - 1 ? (
+                {currentStep === steps.length - 1 ? (
                   <>
-                    <Check className="w-4 h-4" />
-                    시작하기
+                    <Check className="w-3.5 h-3.5" />
+                    완료
                   </>
                 ) : (
                   <>

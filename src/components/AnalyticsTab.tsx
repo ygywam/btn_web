@@ -112,7 +112,7 @@ export default function AnalyticsTab({ books, posts, onSearchBook }: AnalyticsTa
                 AI 독서 비서 & 맞춤 도서 추천
               </h3>
               <p className="text-xs text-neutral-500">
-                내 서재의 책과 수집한 문장을 분석해 나의 독서 성향을 분석하고 다음 책을 추천해 드립니다.
+                서재의 도서와 수집한 문장을 바탕으로 독서 성향과 추천 도서를 확인합니다.
               </p>
             </div>
           </div>
@@ -238,7 +238,7 @@ export default function AnalyticsTab({ books, posts, onSearchBook }: AnalyticsTa
             <Award className="w-10 h-10 mx-auto mb-2 text-neutral-300" />
             <p className="text-xs font-semibold text-neutral-700 mb-1">아직 완독한 책이 없습니다.</p>
             <p className="text-[11px] text-neutral-400">
-              서재에서 읽은 페이지를 기록하여 100%에 도달하면 이곳에 멋진 완독 배지와 함께 기록됩니다!
+              진도율 100%에 도달하면 완독 도서로 표시됩니다.
             </p>
           </div>
         )}

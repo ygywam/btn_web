@@ -33,6 +33,15 @@ export function clearProfileStorage(): void {
 }
 
 /**
+ * 이메일이나 빈 문자열이 자동 닉네임으로 노출되지 않도록 기본 별칭으로 정제
+ */
+function sanitizeFallbackNickname(raw?: string | null): string {
+  const trimmed = (raw || '').trim();
+  if (!trimmed || trimmed.includes('@')) return '독서가';
+  return trimmed.slice(0, 10);
+}
+
+/**
  * Supabase 세션 또는 브라우저 저장 프로필을 복원
  */
 export async function restoreSessionProfile(): Promise<Profile | null> {
@@ -59,14 +68,11 @@ export async function restoreSessionProfile(): Promise<Profile | null> {
       return existing as Profile;
     }
 
-    // Google OAuth 최초 로그인 등으로 프로필 행이 아직 없으면 메타데이터 기반으로 생성
-    const fallbackName =
-      session.user.user_metadata?.full_name ||
-      session.user.email?.split('@')[0] ||
-      '독서가';
+    // Google OAuth 최초 로그인 등으로 프로필 행이 아직 없으면 이메일 대신 안전한 기본 별칭 사용
+    const fallbackName = sanitizeFallbackNickname(session.user.user_metadata?.full_name);
     const created: Profile = {
       id: session.user.id,
-      nickname: String(fallbackName).slice(0, 10),
+      nickname: fallbackName,
       avatar_url: session.user.user_metadata?.avatar_url || null,
       created_at: new Date().toISOString(),
     };
@@ -115,7 +121,7 @@ export async function signInWithEmail(
   if (!isSupabaseConfigured) {
     const localProfile: Profile = {
       id: `user-${Date.now()}`,
-      nickname: cleanEmail.split('@')[0] || '책벌레',
+      nickname: '독서가',
       avatar_url: null,
       created_at: new Date().toISOString(),
     };
@@ -159,7 +165,7 @@ export async function signUpWithEmail(
   if (!isSupabaseConfigured) {
     const localProfile: Profile = {
       id: `user-${Date.now()}`,
-      nickname: cleanNickname || cleanEmail.split('@')[0] || '책벌레',
+      nickname: cleanNickname ? cleanNickname.slice(0, 10) : '독서가',
       avatar_url: null,
       created_at: new Date().toISOString(),
     };
@@ -198,10 +204,11 @@ export async function signUpWithEmail(
 }
 
 /**
- * 최초 닉네임 저장 및 프로필 확정
+ * 닉네임 저장 및 프로필 확정 (기존 로컬 식별자는 유지하고 Supabase profiles에도 동기화)
  */
 export async function saveUserNickname(nickname: string): Promise<Profile> {
   const cleanNickname = nickname.trim().slice(0, 10);
+  const cached = loadProfileFromStorage();
 
   if (isSupabaseConfigured) {
     const {
@@ -211,20 +218,21 @@ export async function saveUserNickname(nickname: string): Promise<Profile> {
       const newProfile: Profile = {
         id: user.id,
         nickname: cleanNickname,
-        avatar_url: user.user_metadata?.avatar_url || null,
-        created_at: new Date().toISOString(),
+        avatar_url: user.user_metadata?.avatar_url || cached?.avatar_url || null,
+        created_at: cached?.created_at || new Date().toISOString(),
       };
-      await supabase.from('profiles').upsert(newProfile);
+      const { error } = await supabase.from('profiles').upsert(newProfile);
+      if (error) throw error;
       saveProfileToStorage(newProfile);
       return newProfile;
     }
   }
 
   const localProfile: Profile = {
-    id: `guest-local-${Date.now()}`,
+    id: cached?.id || `guest-local-${Date.now()}`,
     nickname: cleanNickname,
-    avatar_url: null,
-    created_at: new Date().toISOString(),
+    avatar_url: cached?.avatar_url || null,
+    created_at: cached?.created_at || new Date().toISOString(),
   };
   saveProfileToStorage(localProfile);
   return localProfile;

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Mail, Lock, User, Loader2, Lightbulb } from 'lucide-react';
+import { Mail, Lock, User, Loader2 } from 'lucide-react';
 import {
   signInWithGoogle,
   signInWithEmail,
@@ -180,18 +180,6 @@ export default function AuthForm({
         </div>
       )}
 
-      {!isDark && (
-        <div className="p-3 bg-amber-50/80 border border-amber-200/70 rounded-2xl text-[11px] text-amber-950 flex items-start gap-2">
-          <Lightbulb className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <div className="space-y-0.5 leading-relaxed">
-            <span className="font-bold text-amber-900 block">💡 계정 동기화 안내</span>
-            <p className="text-amber-800">
-              동일한 Supabase 계정(이메일)으로 로그인하면 모바일과 PC 어디서나 내 서재와 독서 기록이 실시간으로 안전하게 동기화됩니다.
-            </p>
-          </div>
-        </div>
-      )}
-
       {errorMessage && (
         <div
           className={
@@ -219,13 +207,13 @@ export default function AuthForm({
       {mode === 'NICKNAME' ? (
         <form onSubmit={handleSaveNickname} className="flex flex-col gap-3">
           <p className={isDark ? 'text-xs text-neutral-300' : 'text-xs text-neutral-600'}>
-            북튜닝에서 사용할 닉네임을 정해주세요. 공개 피드와 댓글에 표시됩니다.
+            공개 피드와 댓글에 표시할 닉네임(2~10자)을 입력해 주세요.
           </p>
           <div className="relative">
             <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
             <input
               type="text"
-              placeholder="활동할 닉네임 (2~10자)"
+              placeholder="닉네임 (2~10자)"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               maxLength={10}
@@ -249,7 +237,7 @@ export default function AuthForm({
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
                 <input
                   type="text"
-                  placeholder="활동 닉네임 (예: 기록조율사, 2~10자)"
+                  placeholder="닉네임 (2~10자)"
                   value={nickname}
                   onChange={(e) => setNickname(e.target.value)}
                   maxLength={10}

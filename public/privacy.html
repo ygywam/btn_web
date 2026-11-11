@@ -5,14 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>개인정보처리방침 | 북튜닝</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, sans-serif; background: #FAF8F0; color: #1E232A; margin: 0; padding: 20px; line-height: 1.6; }
-    .container { max-width: 720px; margin: 40px auto; background: #ffffff; padding: 32px; border-radius: 20px; border: 1px solid #E8E3D5; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-    h1 { font-size: 24px; margin-top: 0; color: #111827; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, sans-serif; background: #FAF8F0; color: #1E232A; margin: 0; padding: 20px; line-height: 1.65; }
+    .container { max-width: 740px; margin: 32px auto; background: #ffffff; padding: 32px; border-radius: 20px; border: 1px solid #E8E3D5; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    h1 { font-size: 22px; margin-top: 0; color: #111827; }
     h2 { font-size: 16px; margin-top: 24px; color: #1f2937; border-bottom: 1px solid #f3f4f6; padding-bottom: 6px; }
-    p, li { font-size: 14px; color: #374151; }
-    .highlight-box { background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 12px; padding: 16px; margin: 20px 0; }
-    .highlight-title { font-weight: bold; color: #065F46; font-size: 15px; margin-bottom: 6px; }
-    .highlight-desc { color: #047857; font-size: 13.5px; margin: 0; }
+    p, li { font-size: 13.5px; color: #374151; }
+    ul { padding-left: 20px; }
+    .highlight-box { background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 12px; padding: 16px; margin: 18px 0; }
+    .highlight-title { font-weight: bold; color: #065F46; font-size: 14.5px; margin-bottom: 6px; }
+    .highlight-desc { color: #047857; font-size: 13px; margin: 0; }
+    .info-box { background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 12px; padding: 14px; font-size: 12.5px; }
     a { color: #D97706; text-decoration: none; }
     a:hover { text-decoration: underline; }
   </style>
@@ -21,30 +23,71 @@
   <div class="container">
     <p><a href="/">← 북튜닝 홈으로 돌아가기</a></p>
     <h1>북튜닝 개인정보처리방침</h1>
-    <p style="font-size: 12px; color: #6B7280;">시행일자: 2026년 11월 10일</p>
+    <p style="font-size: 12px; color: #6B7280;">시행일자: 2026년 11월 11일 · 「개인정보 보호법」 제30조 기준 준용</p>
 
     <div class="highlight-box">
-      <div class="highlight-title">✓ 핵심 원칙: "개인정보를 일체 수집하지 않습니다"</div>
+      <div class="highlight-title">✓ 최소 수집 · 비식별 외부 전송 원칙</div>
       <p class="highlight-desc">
-        북튜닝(Book Tuning)은 이용자의 이름, 주민등록번호, 연락처, 생년월일, 주소 등 개인을 식별할 수 있는 일체의 고유식별정보를 요구하거나 수집·저장하지 않습니다. 누구나 안심하고 독서와 기록에만 집중할 수 있습니다.
+        북튜닝(Book Tuning)은 로그인 및 활동명 관리에 필요한 최소 정보(이메일·사용자 지정 닉네임)만 Supabase 인증 체계로 처리하며, 실명·주민등록번호·전화번호·생년월일·주소·학번 등 고유식별정보와 민감정보는 수집하지 않습니다. 도서 검색·OCR·AI 독서노트 호출 시에도 계정 이메일이나 개인식별정보는 함께 전송하지 않습니다.
       </p>
     </div>
 
-    <h2>1. 수집하는 개인정보 항목</h2>
-    <p>북튜닝은 회원가입이나 서비스 이용 과정에서 어떠한 개인정보도 수집하지 않습니다.</p>
+    <h2>제1조 (총칙 및 데이터 처리 구조)</h2>
     <ul>
-      <li><strong>필수 수집 정보:</strong> 없음 (실명, 주민등록번호, 전화번호 일체 미수집)</li>
-      <li><strong>선택 활동 정보:</strong> 독서 기록 작성 시 사용할 임의의 닉네임</li>
+      <li><strong>계정 인증 및 프로필 정보(Supabase):</strong> 이메일 또는 Google 로그인 시 인증 유지에 필요한 식별 값과 사용자가 직접 입력한 닉네임(2~10자)만 처리·저장합니다.</li>
+      <li><strong>서재 및 독서 기록 데이터:</strong> 도서 목록, 읽은 쪽수, 수집 문장, 메모는 현재 이용자의 기기 브라우저(localStorage)에 우선 저장되며, 데이터베이스 연동 및 공개 피드에서도 기본 비공개(나만 보기)와 행 단위 보안 정책(RLS)으로 본인만 조회·수정·삭제할 수 있습니다.</li>
+      <li><strong>외부 API 비식별 요청:</strong> 도서 검색, 사진 글자 인식(OCR), AI 감상문 요청 시 기능 수행에 필요한 검색어·이미지·도서/기록 본문만 전송하고 개인식별정보는 포함하지 않습니다.</li>
     </ul>
 
-    <h2>2. 독서 기록 및 데이터 보관</h2>
-    <p>이용자가 등록한 책, 읽은 페이지 수, 수집한 문장은 기본적으로 '비공개(나만 보기)'로 보관되며, 본인이 직접 '전체 공개'를 켠 특정 글만 소셜 피드에 공유됩니다.</p>
+    <h2>제2조 (처리하는 개인정보 항목 및 비수집 항목)</h2>
+    <ul>
+      <li><strong>이메일 로그인 시(Supabase Auth):</strong> 이메일 주소, 비밀번호(암호화 해시), 인증 식별자(UUID)</li>
+      <li><strong>Google 로그인 시(Supabase OAuth):</strong> 이메일 주소, Google 인증 식별자, 기본 프로필 아이콘 주소</li>
+      <li><strong>프로필(profiles):</strong> 사용자가 직접 정한 활동 닉네임(실명 불필요)</li>
+      <li><strong>비식별 독서 데이터:</strong> 도서 정보, 진행 쪽수, 수집 문장, 메모, 공개 피드 좋아요·댓글</li>
+      <li><strong>수집하지 않는 정보:</strong> 주민등록번호, 실명, 전화번호, 생년월일, 자택 주소, 학교·학번·반 등 고유식별정보 및 민감정보 일체</li>
+    </ul>
 
-    <h2>3. 제3자 제공 및 위탁 없음</h2>
-    <p>북튜닝은 어떠한 사용자 데이터도 마케팅이나 광고를 위해 제3자에게 판매하거나 제공하지 않습니다.</p>
+    <h2>제3조 (개인정보의 처리 목적)</h2>
+    <p>회원 식별 및 로그인 세션 유지, 공개 피드·댓글 닉네임 표시, 독서 서재·OCR·AI 독서노트 기능 제공, 서비스 보안 유지를 위해서만 처리합니다.</p>
 
-    <h2>4. 문의 안내</h2>
-    <p>웹사이트: <a href="https://btnweb.vercel.app">https://btnweb.vercel.app</a></p>
+    <h2>제4조 (처리·보유 기간 및 파기 절차와 방법)</h2>
+    <p>계정·닉네임은 회원 탈퇴 또는 삭제 요청 시까지 보유 후 복구할 수 없는 방법으로 즉시 영구 삭제합니다. 브라우저 저장 데이터는 로그아웃 또는 브라우저 캐시 삭제로 즉시 제거되며, OCR 이미지와 AI 요청 본문은 응답 생성 후 서버에 별도 보관하지 않습니다.</p>
+
+    <h2>제5조 (개인정보의 제3자 제공)</h2>
+    <p>서비스는 이용자의 개인정보를 광고·마케팅·판매 등 목적으로 제3자에게 제공하지 않습니다.</p>
+
+    <h2>제6조 (개인정보 처리의 위탁 및 외부 API·국외 이전 안내)</h2>
+    <ul>
+      <li><strong>Supabase Inc. (인증·DB 위탁 및 국외 이전):</strong> 이메일 인증(Auth) 및 프로필 닉네임 보관 (해외 클라우드 리전 처리 가능, 탈퇴 시 파기)</li>
+      <li><strong>Vercel Inc. (호스팅 및 서버리스 실행):</strong> 웹 애플리케이션 제공 및 API 중계</li>
+      <li><strong>주식회사 카카오 (카카오 도서 검색 API):</strong> 도서 검색어(제목·저자)만 전송, 사용자 개인정보 미포함</li>
+      <li><strong>Google LLC (Google Cloud Vision OCR):</strong> [책 사진 스캔] 실행 시 선택한 책 페이지 이미지만 글자 추출 목적으로 일시 전송(미저장), 개인식별정보 미포함</li>
+      <li><strong>LG AI Research (EXAONE AI):</strong> AI 독서노트/성향 분석 요청 시 도서 정보와 비식별 문장·메모 본문만 전송, 이메일·실명·계정 ID 미포함</li>
+    </ul>
+    <p>※ 사진 촬영 및 메모 입력 시 본인·타인의 개인정보, 신분증, 얼굴 등이 포함되지 않도록 유의해 주세요. 외부 AI·OCR 기능을 쓰지 않거나 계정 삭제를 요청함으로써 국외 이전을 거부할 수 있습니다.</p>
+
+    <h2>제7조 (정보주체의 권리·의무 및 행사 방법)</h2>
+    <p>이용자는 상단 프로필에서 닉네임을 직접 변경하거나 기록을 삭제할 수 있으며, 제10조 연락처로 열람·정정·삭제·처리정지를 요청할 수 있습니다. 요청 접수 시 10일 이내에 조치합니다.</p>
+
+    <h2>제8조 (만 14세 미만 아동의 개인정보 보호)</h2>
+    <p>별도 법정대리인 동의 절차를 운영하지 않으므로 만 14세 미만 아동의 단독 회원가입과 개인정보 입력을 수집 대상으로 삼지 않습니다. 교육 현장에서 활용 시 교사·보호자 지도 하에 비식별 범위에서 이용하며, 법정대리인의 삭제 요청 시 즉시 파기합니다.</p>
+
+    <h2>제9조 (개인정보의 안전성 확보 조치)</h2>
+    <p>전 구간 HTTPS 암호화, 보안 응답 헤더(X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy) 적용, Supabase 행 단위 접근통제(RLS), 비밀번호 단방향 암호화 및 운영자 최소 접근 관리를 시행합니다.</p>
+
+    <h2>제10조 (개발·운영자 및 개인정보 보호책임자 안내)</h2>
+    <div class="info-box">
+      <p><strong>서비스명:</strong> 북튜닝 (Book Tuning)</p>
+      <p><strong>개발 · 운영자 / 개인정보 보호책임자:</strong> 조용희 (서울외국어고등학교, 활동명: 기록조율사)</p>
+      <p><strong>인스타그램:</strong> @record_tuner</p>
+      <p><strong>이메일(열람·삭제·문의):</strong> ygywam@naver.com</p>
+      <p><strong>웹사이트:</strong> <a href="https://btnweb.vercel.app">https://btnweb.vercel.app</a></p>
+    </div>
+    <p style="font-size: 12px; color: #6B7280;">개인정보 침해 구제 문의: 개인정보분쟁조정위원회(1833-6972), 개인정보침해신고센터(118)</p>
+
+    <h2>제11조 (처리방침의 변경)</h2>
+    <p>변경 시 시행일 7일 전부터 사전 공지합니다. 부칙: 이 개인정보처리방침은 2026년 11월 11일부터 시행합니다.</p>
   </div>
 </body>
 </html>
