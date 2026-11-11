@@ -57,6 +57,27 @@ create table if not exists public.comments (
 );
 
 -- ============================================================
+-- 스키마 · 테이블 권한 (GRANT: 미설정 시 permission denied 42501 발생 방지)
+-- ============================================================
+
+grant usage on schema public to anon, authenticated;
+
+grant select on public.profiles to anon, authenticated;
+grant insert, update on public.profiles to authenticated;
+
+grant select on public.books to anon, authenticated;
+grant insert, update, delete on public.books to authenticated;
+
+grant select on public.posts to anon, authenticated;
+grant insert, update, delete on public.posts to authenticated;
+
+grant select on public.likes to anon, authenticated;
+grant insert, delete on public.likes to authenticated;
+
+grant select on public.comments to anon, authenticated;
+grant insert, delete on public.comments to authenticated;
+
+-- ============================================================
 -- RLS (Row Level Security: 행 단위 보안 정책) 설정
 -- ============================================================
 
@@ -67,57 +88,74 @@ alter table public.likes enable row level security;
 alter table public.comments enable row level security;
 
 -- profiles 정책
+drop policy if exists "공개 프로필 조회 허용" on public.profiles;
 create policy "공개 프로필 조회 허용" on public.profiles
   for select using (true);
 
+drop policy if exists "본인 프로필 등록 허용" on public.profiles;
 create policy "본인 프로필 등록 허용" on public.profiles
   for insert with check (auth.uid() = id);
 
+drop policy if exists "본인 프로필 수정 허용" on public.profiles;
 create policy "본인 프로필 수정 허용" on public.profiles
   for update using (auth.uid() = id) with check (auth.uid() = id);
 
 -- books 정책
+drop policy if exists "본인 도서 전체 조회 허용" on public.books;
 create policy "본인 도서 전체 조회 허용" on public.books
   for select using (auth.uid() = user_id or is_public = true);
 
+drop policy if exists "본인 도서 추가 허용" on public.books;
 create policy "본인 도서 추가 허용" on public.books
   for insert with check (auth.uid() = user_id);
 
+drop policy if exists "본인 도서 수정 허용" on public.books;
 create policy "본인 도서 수정 허용" on public.books
   for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+drop policy if exists "본인 도서 삭제 허용" on public.books;
 create policy "본인 도서 삭제 허용" on public.books
   for delete using (auth.uid() = user_id);
 
 -- posts 정책
+drop policy if exists "공개 피드 및 본인 피드 조회 허용" on public.posts;
 create policy "공개 피드 및 본인 피드 조회 허용" on public.posts
   for select using (is_public = true or auth.uid() = user_id);
 
+drop policy if exists "본인 피드 작성 허용" on public.posts;
 create policy "본인 피드 작성 허용" on public.posts
   for insert with check (auth.uid() = user_id);
 
+drop policy if exists "본인 피드 수정 허용" on public.posts;
 create policy "본인 피드 수정 허용" on public.posts
   for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+drop policy if exists "본인 피드 삭제 허용" on public.posts;
 create policy "본인 피드 삭제 허용" on public.posts
   for delete using (auth.uid() = user_id);
 
 -- likes 정책
+drop policy if exists "좋아요 목록 조회 허용" on public.likes;
 create policy "좋아요 목록 조회 허용" on public.likes
   for select using (true);
 
+drop policy if exists "본인 좋아요 등록 허용" on public.likes;
 create policy "본인 좋아요 등록 허용" on public.likes
   for insert with check (auth.uid() = user_id);
 
+drop policy if exists "본인 좋아요 취소 허용" on public.likes;
 create policy "본인 좋아요 취소 허용" on public.likes
   for delete using (auth.uid() = user_id);
 
 -- comments 정책
+drop policy if exists "댓글 목록 조회 허용" on public.comments;
 create policy "댓글 목록 조회 허용" on public.comments
   for select using (true);
 
+drop policy if exists "본인 댓글 작성 허용" on public.comments;
 create policy "본인 댓글 작성 허용" on public.comments
   for insert with check (auth.uid() = user_id);
 
+drop policy if exists "본인 댓글 삭제 허용" on public.comments;
 create policy "본인 댓글 삭제 허용" on public.comments
   for delete using (auth.uid() = user_id);

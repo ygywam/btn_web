@@ -15,7 +15,7 @@
 - [x] 13. ai-clone-shield 스택 감지·설정(aishield.config.json)·적용(apply)·검증(verify) 및 오류 검출에 따른 복원(restore) 완료
 - [x] 14. ai-clone-shield 도메인 보정·Vercel 정적 보호(robots.txt, llms.txt, 메타·워터마크 SSR 내장) 재적용 및 브라우저 콘솔 0건·watermark-check 검증 통과
 - [x] 15. shadcn/ui 구조(`src/components/ui`)·Three.js WebGLShader·LiquidButton 통합 및 "Tuning Your Life" 계정 생성 첫 진입 화면 교체(재진입 스킵 구현)
-- [ ] 16. 도서·기록·좋아요·댓글 Supabase DB 전체 연동 및 닉네임 변경 오류 해결
-- [ ] 17. 상단 '소개영상 다시보기' 버튼 삭제 및 관련 가이드 정리
-- [ ] 18. 사용법 포스트잇 가이드에 본문 화면 영역(통계·필터·책 카드·피드·통계 탭) 설명 추가
-- [ ] 19. 내 서재 및 독서 통계 카드(읽고 있는 책·완독한 책·수집한 문장·누적 쪽수) 클릭 시 세부 내역 모달 구현
+- [ ] 16. 도서·기록·좋아요·댓글 Supabase DB 전체 연동 및 닉네임 변경 오류 해결 (코드·GRANT SQL 반영 및 로컬 UI 검증 완료, Supabase SQL 실행·배포 확인 대기)
+- [x] 17. 상단 '소개영상 다시보기' 버튼 삭제 및 관련 가이드 정리
+- [x] 18. 사용법 포스트잇 가이드에 본문 화면 영역(통계·필터·책 카드·피드·통계 탭) 설명 추가
+- [x] 19. 내 서재 및 독서 통계 카드(읽고 있는 책·완독한 책·수집한 문장·누적 쪽수) 클릭 시 세부 내역 모달 구현
