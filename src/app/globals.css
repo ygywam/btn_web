@@ -5,8 +5,21 @@
 @tailwind utilities;
 
 :root {
-  --background: #FAF8F0;
-  --foreground: #1E232A;
+  --background: 48 56% 96%;
+  --foreground: 213 17% 14%;
+  --primary: 32 95% 44%;
+  --primary-foreground: 222 47% 11%;
+  --secondary: 45 48% 92%;
+  --secondary-foreground: 213 17% 14%;
+  --muted: 43 38% 89%;
+  --muted-foreground: 213 10% 43%;
+  --accent: 48 96% 89%;
+  --accent-foreground: 213 17% 14%;
+  --destructive: 347 77% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 44 33% 87%;
+  --input: 44 33% 87%;
+  --ring: 32 95% 44%;
   --paper-card: #FFFFFF;
   --paper-border: #E8E3D5;
   --accent-gold: #D97706;
@@ -21,8 +34,8 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background-color: var(--background);
-  color: var(--foreground);
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
   font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
   overflow-x: hidden;
   min-height: 100vh;

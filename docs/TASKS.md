@@ -11,3 +11,7 @@
 - [x] 9. 도서 검색 쪽수 직접 확인 입력 및 진도율 100% 자동 완독(Auto Complete) 로직 탑재
 - [x] 10. 독서 통계 탭(Analytics) 신설 (월별 완독 갤러리, 작가별 순위, AI 독서 성향 분석 & 맞춤 도서 3권 추천 연동)
 - [x] 11. Impeccable 디자인 검토, 모바일 반응형(버튼 겹침·입력창 잘림 0건) 검증 및 배포 준비
+- [x] 12. 도서 누적 종합 AI 독서감상문 모달, 진도·메모 쪽수 연동 및 카메라 촬영 OCR 기능 구현
+- [x] 13. ai-clone-shield 스택 감지·설정(aishield.config.json)·적용(apply)·검증(verify) 및 오류 검출에 따른 복원(restore) 완료
+- [x] 14. ai-clone-shield 도메인 보정·Vercel 정적 보호(robots.txt, llms.txt, 메타·워터마크 SSR 내장) 재적용 및 브라우저 콘솔 0건·watermark-check 검증 통과
+- [x] 15. shadcn/ui 구조(`src/components/ui`)·Three.js WebGLShader·LiquidButton 통합 및 "Tuning Your Life" 계정 생성 첫 진입 화면 교체(재진입 스킵 구현)

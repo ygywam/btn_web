@@ -10,3 +10,7 @@
 - 2026-11-10 · 도서 쪽수 수동 입력 및 실시간 자동 완독(Auto Complete) 로직 채택 · 카카오 API의 쪽수 부재를 해결하기 위해 담기 시 전체 쪽수를 직접 확인/입력하도록 개선하고 진도율 100% 도달 시 즉시 완독 상태로 자동 승격
 - 2026-11-10 · 독서 통계 탭(Analytics) 및 AI 맞춤 도서 추천 API 구축 · 월별 완독 도서 갤러리, 작가별 독서 랭킹, 그리고 누적된 책/문장 기록을 심층 분석하여 다음 도서 3권을 추천해주는 AI 리포트 기능 탑재
 - 2026-11-10 · dorms-check 권고 반영 및 개인정보 무수집 처리방침 수립 · 필수 보안 헤더 4종(X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy) 및 Open Graph 메타 적용, 개인정보를 일체 수집하지 않는 안심 개인정보처리방침(/privacy) 및 이용약관(/terms) 제정 완료
+- 2026-11-11 · 도서 종합 AI 독서감상문 모달, 진도·메모 쪽수 연동 및 책 사진 OCR API 탑재 · 도서별 누적 문장·메모를 종합한 서평 생성 모달(BookReportModal) 및 /api/ai/book-report, 진도 메모 입력 시 도서 current_page 자동 갱신, 모바일 카메라 촬영 기반 /api/ocr 문장 스캔 기능 구현 완료
+- 2026-11-11 · ai-clone-shield 적용·검증 후 restore 복원 처리 · 소유자 정보를 반영해 aishield.config.json으로 apply를 실행했으나, verify 정적 검증기가 Next.js 기본 500.html의 application/json 스크립트(__NEXT_DATA__)를 JS 구문 오류로 오탐(error 1건)해 restore로 .next 및 생성 파일을 원복함
+- 2026-11-11 · Next.js App Router 호환 ai-clone-shield 재적용 및 Vercel 배포용 정적 보호 내장 · 빌드 후 HTML 직접 변형이 React 18 하이드레이션 콘솔 오류(#425/#418/#423)를 유발하는 문제를 발견해 워터마크(ZWC+window.__AISHIELD__+meta)와 AI 고지를 layout.tsx SSR에 통합하고, public/robots.txt·public/llms.txt·LICENSE 및 e-legal 해시 매니페스트를 유지해 콘솔 에러 0건 및 watermark-check 검출(id=5bbbeabab428) 검증 완료
+- 2026-11-11 · WebGLShader·LiquidButton 기반 "Tuning Your Life" 첫 진입·계정 생성 게이트 전면 교체 · src/components/ui/ 신규 구성 및 three·@radix-ui/react-slot·class-variance-authority 설치, 공용 인증 헬퍼(src/lib/auth.ts)·AuthForm 추출로 중복을 없애고 비로그인 첫 화면을 EntryGate로 교체하여 로그인 후 재진입 시 내 서재 직행 및 콘솔 에러 0건 검증 완료

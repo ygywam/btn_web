@@ -1,0 +1,15 @@
+{
+  "owner": {
+    "name": "조용희(서울외고),기록조율사",
+    "domain": "btnweb.vercel.app",
+    "contact": "@record_tuner(인스타그램), ygywam@naver.com",
+    "year": 2026
+  },
+  "preset": "balanced",
+  "buildDir": ".next",
+  "layers": {
+    "c-watermark": false,
+    "d-ai-notice": false
+  },
+  "aggressiveOptIn": false
+}

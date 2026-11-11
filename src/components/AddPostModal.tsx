@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Globe, Lock, Loader2, Quote, BookOpen, Send, Lightbulb } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Sparkles, Globe, Lock, Loader2, Quote, BookOpen, Send, Lightbulb, Camera, Image as ImageIcon } from 'lucide-react';
 import type { Book, PostType } from '@/types/database';
 
 interface AddPostModalProps {
@@ -34,6 +34,9 @@ export default function AddPostModal({
   const [content, setContent] = useState('');
   const [isPublic, setIsPublic] = useState(false); // 기본 비공개 원칙
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [isOcrProcessing, setIsOcrProcessing] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 모달이 열리거나 선택된 책이 바뀔 때 동기화
   useEffect(() => {
@@ -53,6 +56,48 @@ export default function AddPostModal({
   if (!isOpen) return null;
 
   const currentBook = books.find((b) => b.id === bookId);
+
+  // 카메라 촬영 및 갤러리 사진 OCR 텍스트 추출
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsOcrProcessing(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64Data = reader.result as string;
+        try {
+          const res = await fetch('/api/ocr', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageBase64: base64Data }),
+          });
+          const data = await res.json();
+          if (data.text) {
+            if (postType === 'QUOTE') {
+              setQuote((prev) => (prev ? `${prev} ${data.text}` : data.text));
+            } else {
+              setContent((prev) => (prev ? `${prev}\n${data.text}` : data.text));
+            }
+          }
+        } catch (apiErr) {
+          console.error('OCR 요청 에러:', apiErr);
+          alert('사진 속 텍스트 추출 중 오류가 발생했습니다.');
+        } finally {
+          setIsOcrProcessing(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('파일 읽기 에러:', err);
+      setIsOcrProcessing(false);
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleAiGenerate = async () => {
     if (!currentBook && !quote && !content) {
@@ -89,12 +134,14 @@ export default function AddPostModal({
       return;
     }
 
+    const parsedPage = pageNumber ? parseInt(pageNumber, 10) : undefined;
+
     onSubmit({
       book_id: bookId || null,
       post_type: postType,
       content: content.trim(),
       quote: quote.trim() || undefined,
-      page_number: pageNumber ? parseInt(pageNumber, 10) : undefined,
+      page_number: parsedPage,
       is_public: isPublic,
     });
 
@@ -109,6 +156,16 @@ export default function AddPostModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-xs">
       <div className="relative w-full max-w-lg max-h-[92vh] bg-white border border-[#E8E3D5] rounded-3xl shadow-2xl flex flex-col overflow-hidden">
         
+        {/* 숨겨진 카메라/파일 업로드 input (모바일 카메라 후면 촬영 지원) */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept="image/*"
+          capture="environment"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+
         {/* 상단 헤더 */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-neutral-100">
           <div>
@@ -128,21 +185,21 @@ export default function AddPostModal({
           </button>
         </div>
 
-        {/* 메인 폼 본문 (스크롤 지원, 모바일 인풋 잘림 방지) */}
+        {/* 메인 폼 본문 */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-5 flex flex-col gap-4">
           
           {/* 모달 사용 팁 가이드 배너 */}
           <div className="p-3 bg-amber-50/80 border border-amber-200/70 rounded-2xl text-[11px] sm:text-xs text-amber-950 flex items-start gap-2.5">
             <Lightbulb className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
             <div className="space-y-0.5 leading-relaxed">
-              <span className="font-bold text-amber-900 block">💡 기록 작성 가이드</span>
+              <span className="font-bold text-amber-900 block">💡 기록 & 스마트 OCR 가이드</span>
               <p className="text-amber-800">
-                인상 깊은 문장이나 생각을 입력한 뒤 <strong>[AI 독서노트 작성]</strong>을 누르면 문맥에 맞는 감상평을 작성해 줍니다. <strong>'기본 비공개'</strong>는 나만의 비밀 서재에 보관되며, <strong>'전체 공개'</strong>로 바꾸면 피드에 공유됩니다.
+                <strong>[📷 책 사진 스캔]</strong>을 누르면 카메라로 책을 찍어 문장을 바로 텍스트로 추출할 수 있습니다. 진도 메모에 쪽수를 적으면 내 책장의 진도율이 자동으로 업데이트됩니다.
               </p>
             </div>
           </div>
 
-          {/* 1. 도서 선택 (특정 책 카드에서 들어왔을 때 고정 표시) */}
+          {/* 1. 도서 선택 */}
           <div>
             <label className="block text-xs font-bold text-neutral-700 mb-1.5">
               기록할 도서
@@ -228,22 +285,62 @@ export default function AddPostModal({
             </button>
           </div>
 
-          {/* 3. 문장 수집일 경우 따옴표 인용구 및 페이지 */}
+          {/* 3. 진도 & 메모일 때: 읽은 페이지 수 입력란 */}
+          {postType === 'PROGRESS' && (
+            <div className="p-3 rounded-2xl bg-amber-50/70 border border-amber-200 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-amber-700" />
+                <span className="text-xs font-bold text-neutral-800">오늘 읽은 페이지:</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  placeholder="예: 120"
+                  value={pageNumber}
+                  onChange={(e) => setPageNumber(e.target.value)}
+                  className="w-20 px-2.5 py-1 text-xs font-bold text-center rounded-lg bg-white border border-amber-300 text-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+                <span className="text-xs text-neutral-500">
+                  / {currentBook?.total_pages ? `${currentBook.total_pages}p` : '? p'}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* 4. 문장 수집일 경우 따옴표 인용구 및 페이지 */}
           {postType === 'QUOTE' && (
-            <div className="p-3 rounded-xl bg-[#FFFDF7] border border-amber-200 flex flex-col gap-2">
-              <label className="text-xs font-bold text-amber-900 flex items-center gap-1">
-                <Quote className="w-3.5 h-3.5 text-amber-600" />
-                마음에 남은 책 속 문장
-              </label>
+            <div className="p-3.5 rounded-2xl bg-[#FFFDF7] border border-amber-200 flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-amber-900 flex items-center gap-1">
+                  <Quote className="w-3.5 h-3.5 text-amber-600" />
+                  마음에 남은 책 속 문장
+                </label>
+                {/* 카메라 OCR 버튼 */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isOcrProcessing}
+                  className="touch-target px-2.5 py-1 text-[11px] font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 active:scale-95 rounded-lg flex items-center gap-1 transition-all"
+                  title="카메라로 책 페이지를 찍어 문장을 자동 입력합니다"
+                >
+                  {isOcrProcessing ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600" />
+                  ) : (
+                    <Camera className="w-3.5 h-3.5 text-amber-700" />
+                  )}
+                  <span>{isOcrProcessing ? '글자 읽는 중...' : '📷 책 사진 스캔'}</span>
+                </button>
+              </div>
+
               <textarea
                 rows={3}
-                placeholder="책 속의 아름다운 문장을 그대로 적어보세요..."
+                placeholder="책 속의 아름다운 문장을 그대로 적거나, 상단의 [📷 책 사진 스캔]으로 촬영해 보세요..."
                 value={quote}
                 onChange={(e) => setQuote(e.target.value)}
                 className="w-full min-w-0 p-2 text-xs sm:text-sm rounded-lg bg-white border border-amber-200 focus:outline-none focus:ring-1 focus:ring-amber-500 text-neutral-800"
               />
               <div className="flex items-center gap-2">
-                <span className="text-xs text-neutral-500">페이지:</span>
+                <span className="text-xs text-neutral-500">문장 위치:</span>
                 <input
                   type="number"
                   placeholder="예: 42"
@@ -256,38 +353,58 @@ export default function AddPostModal({
             </div>
           )}
 
-          {/* 4. 나의 생각 및 단상 */}
+          {/* 5. 나의 생각 및 단상 */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-bold text-neutral-700">
-                나의 생각 & 독서 단상
+                {postType === 'PROGRESS' ? '오늘 읽으며 남긴 생각 & 메모' : '나의 생각 & 독서 단상'}
               </label>
-              {/* 자연스러운 이름으로 변경된 AI 버튼 */}
-              <button
-                type="button"
-                onClick={handleAiGenerate}
-                disabled={isGeneratingAi}
-                className="touch-target px-2.5 py-1 text-[11px] font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 active:scale-95 rounded-lg flex items-center gap-1 transition-all"
-                title="AI가 책 정보와 문장을 분석해 감상문 작성을 도와줍니다"
-              >
-                {isGeneratingAi ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+
+              <div className="flex items-center gap-1.5">
+                {/* 진도 메모나 단상에서도 사진 스캔 가능 */}
+                {postType !== 'QUOTE' && (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isOcrProcessing}
+                    className="touch-target px-2 py-1 text-[11px] font-bold text-neutral-700 bg-neutral-100 hover:bg-neutral-200 active:scale-95 rounded-lg flex items-center gap-1 transition-all"
+                  >
+                    {isOcrProcessing ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Camera className="w-3.5 h-3.5 text-neutral-600" />
+                    )}
+                    <span>사진 스캔</span>
+                  </button>
                 )}
-                <span>✨ AI 독서노트 작성</span>
-              </button>
+
+                <button
+                  type="button"
+                  onClick={handleAiGenerate}
+                  disabled={isGeneratingAi}
+                  className="touch-target px-2.5 py-1 text-[11px] font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 active:scale-95 rounded-lg flex items-center gap-1 transition-all"
+                  title="AI가 책 정보와 문장을 분석해 감상문 작성을 도와줍니다"
+                >
+                  {isGeneratingAi ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                  )}
+                  <span>✨ AI 독서노트 작성</span>
+                </button>
+              </div>
             </div>
+
             <textarea
               rows={4}
-              placeholder="이 구절을 읽으며 떠오른 생각, 내 삶에 비추어본 단상을 자유롭게 적어보세요..."
+              placeholder="이 구절을 읽으며 떠오른 생각, 오늘 독서의 소감과 단상을 자유롭게 적어보세요..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="w-full min-w-0 p-3 text-xs sm:text-sm rounded-xl bg-neutral-50 border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-amber-500 text-neutral-900"
             />
           </div>
 
-          {/* 5. 공개 / 비공개 토글 (기본 비공개 원칙) */}
+          {/* 6. 공개 / 비공개 토글 */}
           <div className="flex items-center justify-between p-3 rounded-xl bg-[#FAF8F0] border border-[#E8E3D5]">
             <div className="flex items-center gap-2">
               {isPublic ? (

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
+import EntryGate from '@/components/EntryGate';
 import IntroPromoModal from '@/components/IntroPromoModal';
 import SpotlightCoachmark from '@/components/SpotlightCoachmark';
 import BookSearchModal from '@/components/BookSearchModal';
@@ -10,7 +11,15 @@ import AuthModal from '@/components/AuthModal';
 import BookCard from '@/components/BookCard';
 import FeedCard from '@/components/FeedCard';
 import AnalyticsTab from '@/components/AnalyticsTab';
+import BookReportModal from '@/components/BookReportModal';
 import { BookOpen, Sparkles, Plus, Compass, Bookmark, TrendingUp, MessageSquare, BarChart2 } from 'lucide-react';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import {
+  loadProfileFromStorage,
+  restoreSessionProfile,
+  saveProfileToStorage,
+  signOutUser,
+} from '@/lib/auth';
 import type { Book, Post, Profile, BookStatus } from '@/types/database';
 
 export default function HomePage() {
@@ -21,9 +30,11 @@ export default function HomePage() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isAddPostOpen, setIsAddPostOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
   const [forcePromo, setForcePromo] = useState(false);
   const [forceTour, setForceTour] = useState(false);
   const [selectedBookForPost, setSelectedBookForPost] = useState<string | undefined>();
+  const [selectedBookForReport, setSelectedBookForReport] = useState<Book | null>(null);
 
   // 사용자 프로필 및 세션 유지
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -33,15 +44,11 @@ export default function HomePage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // 로컬 세션 프로필 및 저장된 데이터 복원
+  // 로컬 세션 및 Supabase Auth 상태 복원 (재진입 시 첫 진입 화면 스킵)
   useEffect(() => {
-    const savedProfile = localStorage.getItem('booktuning_user_profile');
-    if (savedProfile) {
-      try {
-        setProfile(JSON.parse(savedProfile));
-      } catch (e) {
-        console.error('프로필 복원 실패:', e);
-      }
+    const cachedProfile = loadProfileFromStorage();
+    if (cachedProfile) {
+      setProfile(cachedProfile);
     }
 
     const savedBooks = localStorage.getItem('booktuning_books_data');
@@ -62,7 +69,36 @@ export default function HomePage() {
       }
     }
 
-    setIsLoaded(true);
+    if (!isSupabaseConfigured) {
+      setIsLoaded(true);
+      return;
+    }
+
+    let cancelled = false;
+    restoreSessionProfile()
+      .then((restored) => {
+        if (!cancelled && restored) {
+          setProfile(restored);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoaded(true);
+      });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') {
+        restoreSessionProfile().then((restored) => {
+          if (!cancelled && restored) setProfile(restored);
+        });
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // 데이터 변경 시 로컬 스토리지에 동기화
@@ -78,8 +114,8 @@ export default function HomePage() {
     }
   }, [posts, isLoaded]);
 
-  const handleSignOut = () => {
-    localStorage.removeItem('booktuning_user_profile');
+  const handleSignOut = async () => {
+    await signOutUser();
     setProfile(null);
   };
 
@@ -192,6 +228,26 @@ export default function HomePage() {
     };
 
     setPosts((prev) => [newPost, ...prev]);
+
+    // 진도 & 메모 작성 시 입력된 쪽수로 도서 진도율 자동 업데이트
+    if (
+      newPostData.post_type === 'PROGRESS' &&
+      newPostData.book_id &&
+      typeof newPostData.page_number === 'number' &&
+      newPostData.page_number >= 0
+    ) {
+      handleUpdateProgress(newPostData.book_id, newPostData.page_number);
+    }
+  };
+
+  // 종합 독서감상문을 전체 공개 피드로 공유
+  const handleShareReportToFeed = (content: string, bookId: string) => {
+    handleAddPost({
+      book_id: bookId,
+      post_type: 'NOTE',
+      content,
+      is_public: true,
+    });
   };
 
   // 좋아요 토글
@@ -235,6 +291,28 @@ export default function HomePage() {
   const readingCount = books.filter((b) => b.status === 'READING').length;
   const completedCount = books.filter((b) => b.status === 'COMPLETED').length;
   const quoteCount = posts.filter((p) => p.post_type === 'QUOTE').length;
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-xs tracking-widest uppercase text-white/60">
+          BOOK TUNING...
+        </div>
+      </div>
+    );
+  }
+
+  // 비로그인 시 기존 첫 페이지 대신 WebGL 셰이더 + 계정 생성 게이트 표시
+  if (!profile) {
+    return (
+      <EntryGate
+        onSuccess={(p) => {
+          saveProfileToStorage(p);
+          setProfile(p);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FAF8F0] text-[#1E232A] flex flex-col">
@@ -330,6 +408,10 @@ export default function HomePage() {
                     onSelectForPost={(selected) => {
                       setSelectedBookForPost(selected.id);
                       setIsAddPostOpen(true);
+                    }}
+                    onOpenReport={(selected) => {
+                      setSelectedBookForReport(selected);
+                      setIsReportOpen(true);
                     }}
                   />
                 ))}
@@ -440,11 +522,13 @@ export default function HomePage() {
       </main>
 
       {/* 3. 모달 레이어들 */}
-      {/* (1) 인트로 홍보 영상 모달 */}
-      <IntroPromoModal
-        forceOpen={forcePromo}
-        onClose={() => setForcePromo(false)}
-      />
+      {/* (1) 상단 버튼으로 다시볼 때만 열리는 홍보 영상 모달 */}
+      {forcePromo && (
+        <IntroPromoModal
+          forceOpen={true}
+          onClose={() => setForcePromo(false)}
+        />
+      )}
 
       {/* (2) 스포트라이트 포스트잇 코치마크 온보딩 */}
       <SpotlightCoachmark
@@ -472,7 +556,19 @@ export default function HomePage() {
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
-        onSuccess={(p) => setProfile(p)}
+        onSuccess={(p) => {
+          saveProfileToStorage(p);
+          setProfile(p);
+        }}
+      />
+
+      {/* (6) 도서 누적 종합 AI 독서감상문 모달 */}
+      <BookReportModal
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        book={selectedBookForReport}
+        posts={posts}
+        onShareToFeed={handleShareReportToFeed}
       />
     </div>
   );

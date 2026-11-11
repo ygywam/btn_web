@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { BookOpen, CheckCircle, Clock, Bookmark, Lock, Globe, Plus, Minus, Edit3 } from 'lucide-react';
+import { BookOpen, CheckCircle, Clock, Bookmark, Lock, Globe, Plus, Minus, Edit3, Sparkles } from 'lucide-react';
 import type { Book, BookStatus } from '@/types/database';
 
 interface BookCardProps {
@@ -11,6 +11,7 @@ interface BookCardProps {
   onUpdateStatus: (bookId: string, newStatus: BookStatus) => void;
   onUpdateTotalPages?: (bookId: string, newTotal: number) => void;
   onSelectForPost?: (book: Book) => void;
+  onOpenReport?: (book: Book) => void;
 }
 
 export default function BookCard({
@@ -19,6 +20,7 @@ export default function BookCard({
   onUpdateStatus,
   onUpdateTotalPages,
   onSelectForPost,
+  onOpenReport,
 }: BookCardProps) {
   const [isEditingPage, setIsEditingPage] = useState(false);
   const [isEditingTotal, setIsEditingTotal] = useState(false);
@@ -216,7 +218,7 @@ export default function BookCard({
           />
         </div>
 
-        {/* 퀵 액션 버튼들 (모바일 오터치 방지 gap-2, min-h-[36px]) */}
+        {/* 퀵 액션 버튼들 */}
         <div className="flex items-center justify-between gap-1.5">
           <div className="flex items-center gap-1">
             <button
@@ -242,14 +244,29 @@ export default function BookCard({
             </button>
           </div>
 
-          {onSelectForPost && (
-            <button
-              onClick={() => onSelectForPost(book)}
-              className="touch-target px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-sm transition-all"
-            >
-              기록 쓰기
-            </button>
-          )}
+          <div className="flex items-center gap-1.5">
+            {/* ✨ 종합 감상문 버튼 */}
+            {onOpenReport && (
+              <button
+                onClick={() => onOpenReport(book)}
+                className="touch-target px-2.5 py-1 text-xs font-semibold rounded-lg bg-neutral-100 hover:bg-amber-100 hover:text-amber-900 text-neutral-700 transition-all flex items-center gap-1"
+                title="이 책에 남긴 모든 문장과 메모를 모아 독서감상문 작성"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                <span className="hidden sm:inline">종합 감상문</span>
+                <span className="sm:hidden">감상문</span>
+              </button>
+            )}
+
+            {onSelectForPost && (
+              <button
+                onClick={() => onSelectForPost(book)}
+                className="touch-target px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-sm transition-all"
+              >
+                기록 쓰기
+              </button>
+            )}
+          </div>
         </div>
 
       </div>
