@@ -88,7 +88,7 @@ export default function TermsPage() {
               제5조 (책임의 제한)
             </h2>
             <ul className="list-disc pl-5 space-y-1 text-neutral-600">
-              <li>운영자는 천재지변, 정전, 클라우드·호스팅(Vercel·Supabase) 및 외부 API(카카오·Google Vision·EXAONE) 장애 등 통제할 수 없는 사유로 인한 서비스 중단에 대해 책임을 지지 않습니다.</li>
+              <li>운영자는 천재지변, 정전, 클라우드·호스팅(Vercel·Supabase) 및 외부 API(카카오·Google Gemini·EXAONE) 장애 등 통제할 수 없는 사유로 인한 서비스 중단에 대해 책임을 지지 않습니다.</li>
               <li>본 서비스는 무료 비영리 개인·교육 목적의 프로젝트로 제공되며, AI 생성 감상문이나 OCR 인식 결과, 도서 메타데이터의 완전성·정확성이나 상시 데이터 백업을 보증하지 않습니다.</li>
               <li>이용자가 공개 피드에 게시한 내용과 이용자 간 분쟁에 대해서는 게시자 본인에게 책임이 있습니다.</li>
             </ul>

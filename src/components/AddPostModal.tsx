@@ -51,6 +51,64 @@ interface AddPostModalProps {
   }) => void;
 }
 
+// 모바일 카메라 고화질 사진이 Vercel 요청 크기 제한(4.5MB)을 넘지 않도록 클라이언트에서 적정 크기로 압축
+async function compressImageForOcr(file: File, maxDimension = 1600, quality = 0.86): Promise<string> {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    throw new Error('브라우저 환경에서만 이미지를 처리할 수 있습니다.');
+  }
+
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+
+    img.onload = () => {
+      try {
+        const { width, height } = img;
+        const scale = Math.min(1, maxDimension / Math.max(width, height));
+        const targetWidth = Math.max(1, Math.round(width * scale));
+        const targetHeight = Math.max(1, Math.round(height * scale));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          throw new Error('이미지 캔버스를 초기화할 수 없습니다.');
+        }
+
+        // 투명 PNG 등도 깔끔히 JPEG로 변환되도록 흰 배경을 채움
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, targetWidth, targetHeight);
+        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl);
+      } catch (canvasErr) {
+        reject(canvasErr);
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result);
+        } else {
+          reject(new Error('이미지 파일을 읽지 못했습니다.'));
+        }
+      };
+      reader.onerror = () => reject(new Error('이미지 파일을 읽지 못했습니다.'));
+      reader.readAsDataURL(file);
+    };
+
+    img.src = objectUrl;
+  });
+}
+
 export default function AddPostModal({
   isOpen,
   onClose,
@@ -67,6 +125,8 @@ export default function AddPostModal({
   const [isPublic, setIsPublic] = useState(false); // 기본 비공개 원칙
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [isOcrProcessing, setIsOcrProcessing] = useState(false);
+  const [ocrError, setOcrError] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
   const [isPostTourOpen, setIsPostTourOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -74,6 +134,8 @@ export default function AddPostModal({
   // 모달이 열리거나 선택된 책이 바뀔 때 동기화
   useEffect(() => {
     if (isOpen) {
+      setOcrError(null);
+      setAiError(null);
       if (selectedBookId) {
         setBookId(selectedBookId);
         setIsLockedBook(true);
@@ -96,36 +158,38 @@ export default function AddPostModal({
     if (!file) return;
 
     setIsOcrProcessing(true);
+    setOcrError(null);
     try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64Data = reader.result as string;
-        try {
-          const res = await fetch('/api/ocr', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imageBase64: base64Data }),
-          });
-          const data = await res.json();
-          if (data.text) {
-            if (postType === 'QUOTE') {
-              setQuote((prev) => (prev ? `${prev} ${data.text}` : data.text));
-            } else {
-              setContent((prev) => (prev ? `${prev}\n${data.text}` : data.text));
-            }
-          }
-        } catch (apiErr) {
-          console.error('OCR 요청 에러:', apiErr);
-          alert('사진 속 텍스트 추출 중 오류가 발생했습니다.');
-        } finally {
-          setIsOcrProcessing(false);
-        }
-      };
-      reader.readAsDataURL(file);
+      const base64Data = await compressImageForOcr(file);
+      const res = await fetch('/api/ocr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64Data }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || '사진 속 텍스트 추출 중 오류가 발생했습니다.');
+      }
+      if (!data.text || typeof data.text !== 'string') {
+        throw new Error('사진에서 읽을 수 있는 글자를 찾지 못했습니다.');
+      }
+
+      const extracted = data.text.trim();
+      if (postType === 'QUOTE') {
+        setQuote((prev) => (prev ? `${prev} ${extracted}` : extracted));
+      } else {
+        setContent((prev) => (prev ? `${prev}\n${extracted}` : extracted));
+      }
     } catch (err) {
-      console.error('파일 읽기 에러:', err);
-      setIsOcrProcessing(false);
+      console.error('OCR 요청 에러:', err);
+      setOcrError(
+        err instanceof Error
+          ? err.message
+          : '사진 속 텍스트 추출 중 오류가 발생했습니다.'
+      );
     } finally {
+      setIsOcrProcessing(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -133,8 +197,9 @@ export default function AddPostModal({
   };
 
   const handleAiGenerate = async () => {
-    if (!currentBook && !quote && !content) {
-      alert('책을 선택하거나 문장 또는 메모를 입력한 후 AI 감상문을 생성해 보세요.');
+    setAiError(null);
+    if (!currentBook && !quote.trim() && !content.trim()) {
+      setAiError('책을 선택하거나 문장 또는 메모를 입력한 후 AI 독서노트를 작성해 보세요.');
       return;
     }
 
@@ -149,12 +214,21 @@ export default function AddPostModal({
           userNotes: content.trim(),
         }),
       });
-      const data = await res.json();
-      if (data.content) {
-        setContent((prev) => (prev ? `${prev}\n\n[AI 감상 노트]\n${data.content}` : data.content));
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || 'AI 독서노트 생성 중 오류가 발생했습니다.');
       }
+      if (!data.content || typeof data.content !== 'string') {
+        throw new Error('AI가 빈 응답을 반환했습니다. 다시 시도해 주세요.');
+      }
+      setContent((prev) => (prev ? `${prev}\n\n[AI 감상 노트]\n${data.content}` : data.content));
     } catch (err) {
       console.error('AI 감상문 생성 오류:', err);
+      setAiError(
+        err instanceof Error
+          ? err.message
+          : 'AI 독서노트 생성 중 오류가 발생했습니다.'
+      );
     } finally {
       setIsGeneratingAi(false);
     }
@@ -378,6 +452,14 @@ export default function AddPostModal({
                 onChange={(e) => setQuote(e.target.value)}
                 className="w-full min-w-0 p-2 text-xs sm:text-sm rounded-lg bg-white border border-amber-200 focus:outline-none focus:ring-1 focus:ring-amber-500 text-neutral-800"
               />
+              {ocrError && (
+                <div
+                  role="alert"
+                  className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-[11px] sm:text-xs text-rose-800 leading-relaxed"
+                >
+                  {ocrError}
+                </div>
+              )}
               <div className="flex items-center gap-2">
                 <span className="text-xs text-neutral-500">문장 위치:</span>
                 <input
@@ -435,6 +517,16 @@ export default function AddPostModal({
                 </button>
               </div>
             </div>
+
+            {((postType !== 'QUOTE' && ocrError) || aiError) && (
+              <div
+                role="alert"
+                className="mb-2 p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-[11px] sm:text-xs text-rose-800 leading-relaxed space-y-1"
+              >
+                {postType !== 'QUOTE' && ocrError && <div>{ocrError}</div>}
+                {aiError && <div>{aiError}</div>}
+              </div>
+            )}
 
             <textarea
               rows={4}

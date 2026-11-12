@@ -151,7 +151,7 @@ export default function PrivacyPage() {
                 <strong>주식회사 카카오 (카카오 도서 검색 API):</strong> 이용자가 입력한 <strong>도서 검색어(제목·저자)만</strong> 전달하며, 사용자 이메일·닉네임 등 개인정보는 전송하지 않습니다.
               </li>
               <li>
-                <strong>Google LLC (Google Cloud Vision OCR API · 국외 이전 가능):</strong> 이용자가 [책 사진 스캔]을 직접 누른 경우에만 <strong>선택한 책 페이지 이미지</strong>를 글자 추출 목적으로 일시 전송하며, 계정 식별정보는 포함하지 않습니다.
+                <strong>Google LLC (Google Gemini API · 책 사진 OCR, 국외 이전 가능):</strong> 이용자가 [책 사진 스캔]을 직접 누른 경우에만 <strong>선택한 책 페이지 이미지</strong>를 글자 추출 목적으로 일시 전송하며, 계정 식별정보는 포함하지 않고 서비스 서버에도 저장하지 않습니다.
               </li>
               <li>
                 <strong>LG AI Research (EXAONE AI API):</strong> 이용자가 AI 독서노트·독서 성향 분석을 실행한 경우에만 <strong>도서 정보와 비식별 문장·메모 본문</strong>을 전송하며, 이메일·실명·계정 ID는 전송하지 않습니다.

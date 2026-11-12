@@ -15,7 +15,7 @@ interface AnalyticsTabProps {
 
 interface AiReport {
   profileSummary: string;
-  topAuthors: Array<{ name: string; count: number }>;
+  topAuthors?: Array<{ name: string; count: number }>;
   recommendations: Array<{
     title: string;
     authors: string;
@@ -27,6 +27,7 @@ interface AiReport {
 export default function AnalyticsTab({ books, posts, onSearchBook, onSelectStat }: AnalyticsTabProps) {
   const [isLoadingAi, setIsLoadingAi] = useState(false);
   const [aiReport, setAiReport] = useState<AiReport | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   // 기본 통계 계산
   const completedBooks = books.filter((b) => b.status === 'COMPLETED');
@@ -39,18 +40,26 @@ export default function AnalyticsTab({ books, posts, onSearchBook, onSelectStat 
   // AI 분석 요청
   const handleGenerateAnalysis = async () => {
     setIsLoadingAi(true);
+    setAiError(null);
     try {
       const res = await fetch('/api/ai/analytics', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ books, posts }),
       });
-      const data = await res.json();
-      if (data.profileSummary) {
-        setAiReport(data);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || 'AI 독서 성향 분석에 실패했습니다.');
       }
+      if (!data.profileSummary || !Array.isArray(data.recommendations)) {
+        throw new Error('AI 분석 결과 형식이 올바르지 않습니다. 다시 시도해 주세요.');
+      }
+      setAiReport(data);
     } catch (err) {
       console.error('AI 분석 실패:', err);
+      setAiError(
+        err instanceof Error ? err.message : 'AI 독서 성향 분석 중 오류가 발생했습니다.'
+      );
     } finally {
       setIsLoadingAi(false);
     }
@@ -167,6 +176,15 @@ export default function AnalyticsTab({ books, posts, onSearchBook, onSelectStat 
             )}
           </button>
         </div>
+
+        {aiError && (
+          <div
+            role="alert"
+            className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs sm:text-sm text-rose-800 leading-relaxed"
+          >
+            {aiError}
+          </div>
+        )}
 
         {/* AI 분석 결과 리포트 */}
         {aiReport && (

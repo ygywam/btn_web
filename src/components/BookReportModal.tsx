@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { X, Sparkles, BookOpen, Quote, FileText, Loader2, Copy, Check, Globe } from 'lucide-react';
 import type { Book, Post } from '@/types/database';
@@ -22,8 +22,17 @@ export default function BookReportModal({
 }: BookReportModalProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [reportContent, setReportContent] = useState<string>('');
+  const [reportError, setReportError] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
   const [isShared, setIsShared] = useState(false);
+
+  // 다른 책을 열거나 모달을 닫을 때 이전 오류 및 감상문 상태 초기화
+  useEffect(() => {
+    setReportError(null);
+    setReportContent('');
+    setIsShared(false);
+    setIsCopied(false);
+  }, [book?.id, isOpen]);
 
   if (!isOpen || !book) return null;
 
@@ -35,6 +44,7 @@ export default function BookReportModal({
   // AI 종합 독서감상문 생성 요청
   const handleGenerateReport = async () => {
     setIsGenerating(true);
+    setReportError(null);
     try {
       const res = await fetch('/api/ai/book-report', {
         method: 'POST',
@@ -45,13 +55,19 @@ export default function BookReportModal({
         }),
       });
 
-      const data = await res.json();
-      if (data.content) {
-        setReportContent(data.content);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || '종합 감상문 생성에 실패했습니다.');
       }
+      if (!data.content) {
+        throw new Error('AI가 빈 감상문을 반환했습니다. 다시 시도해 주세요.');
+      }
+      setReportContent(data.content);
     } catch (err) {
       console.error('종합 감상문 생성 실패:', err);
-      alert('독서감상문 생성 중 오류가 발생했습니다.');
+      setReportError(
+        err instanceof Error ? err.message : '독서감상문 생성 중 오류가 발생했습니다.'
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -182,12 +198,29 @@ export default function BookReportModal({
                   </>
                 )}
               </button>
+
+              {reportError && (
+                <div
+                  role="alert"
+                  className="text-left p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 leading-relaxed"
+                >
+                  {reportError}
+                </div>
+              )}
             </div>
           )}
 
           {/* 3. 완성된 종합 독서감상문 에세이 뷰어 */}
           {reportContent && (
             <div className="space-y-4 animate-in fade-in duration-300">
+              {reportError && (
+                <div
+                  role="alert"
+                  className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 leading-relaxed"
+                >
+                  {reportError}
+                </div>
+              )}
               
               {/* 상단 컨트롤 바 */}
               <div className="flex items-center justify-between pb-2 border-b border-neutral-100">
